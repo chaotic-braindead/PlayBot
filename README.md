@@ -1,2 +1,2 @@
 # PlayBot
-Discord Bot test
+Just me messing around with Discord bots
