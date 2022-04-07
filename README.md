@@ -1,2 +1,2 @@
 # PlayBot
-Just me messing around with a small portion Discord's API 
+Just me messing around with Discord's API 
