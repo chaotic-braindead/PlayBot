@@ -45,7 +45,7 @@ async def joke(ctx):
 
 @client.command()
 async def summary(ctx, topic):
-  info = wikipedia.summary(topic, sentences=3)
+  info = wikipedia.summary(topic, auto_suggest=False, sentences=2)
   await ctx.send(info)
 
 @client.command()
