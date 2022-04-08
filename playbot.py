@@ -6,6 +6,7 @@ import urllib.request
 import urllib.parse
 import pafy
 import re
+import time
 
 FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5','options': '-vn'}
 client = commands.Bot(command_prefix='!')
@@ -100,6 +101,7 @@ async def play(ctx, song):
     newsong = pafy.new(search_resultsyt[0]) 
     audio = newsong.getbestaudio() 
     newsource = FFmpegPCMAudio(audio.url, **FFMPEG_OPTIONS)
+    time.sleep(1)
     voice.play(newsource, after=lambda x=None: check_queue(ctx, ctx.message.guild.id)) 
 
   else:
