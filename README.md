@@ -1,2 +1,2 @@
 # PlayBot
-Just me messing around with Discord's API 
+A Discord bot that plays music. I just wanted to make one myself to understand the API.
