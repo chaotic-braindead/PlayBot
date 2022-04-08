@@ -85,57 +85,64 @@ async def stop(ctx):
 
 @client.command()
 async def play(ctx, song):
-  if ctx.message.author.voice == None:
-    await ctx.send("No Voice Channel", "You need to be in a voice channel to use this command!", ctx.author)
-    return
+  if ctx.author.voice:
+    voice = ctx.guild.voice_client
+    play_check = discord.utils.get(client.voice_clients, guild=ctx.guild)
+    
+    if not play_check.is_playing():
+      query_stringyt = urllib.parse.urlencode({"search_query" : song})
+      html_contentyt = urllib.request.urlopen("https://www.youtube.com/results?"+query_stringyt)
+      search_resultsyt = re.findall(r'url\"\:\"\/watch\?v\=(.*?(?=\"))', html_contentyt.read().decode())
+      await ctx.send(f"Now playing: http://www.youtube.com/watch?v={search_resultsyt[0]}")
 
-  voice = ctx.guild.voice_client
-  play_check = discord.utils.get(client.voice_clients, guild=ctx.guild)
-  
-  if not play_check.is_playing():
-    query_stringyt = urllib.parse.urlencode({"search_query" : song})
-    html_contentyt = urllib.request.urlopen("https://www.youtube.com/results?"+query_stringyt)
-    search_resultsyt = re.findall(r'url\"\:\"\/watch\?v\=(.*?(?=\"))', html_contentyt.read().decode())
-    await ctx.send(f"Now playing: http://www.youtube.com/watch?v={search_resultsyt[0]}")
+      newsong = pafy.new(search_resultsyt[0]) 
+      audio = newsong.getbestaudio() 
+      newsource = FFmpegPCMAudio(audio.url, **FFMPEG_OPTIONS)
+      time.sleep(1)
+      voice.play(newsource, after=lambda x=None: check_queue(ctx, ctx.message.guild.id)) 
 
-    newsong = pafy.new(search_resultsyt[0]) 
-    audio = newsong.getbestaudio() 
-    newsource = FFmpegPCMAudio(audio.url, **FFMPEG_OPTIONS)
-    time.sleep(1)
-    voice.play(newsource, after=lambda x=None: check_queue(ctx, ctx.message.guild.id)) 
-
+    else:
+      await ctx.send('There is a song currently playing.\n To add something to your queue, use the **!queue** command.\n To skip to the next song in queue, use the **!skip** command')
   else:
-    await ctx.send('There is a song currently playing.\n To add something to your queue, use the **!queue** command.\n To skip to the next song in queue, use the **!skip** command')
+    await ctx.send("You're not in a voice channel, ya dingus!")
 
 @client.command()
 async def queue(ctx, song):
-  voice = ctx.guild.voice_client
-  query_queue = urllib.parse.urlencode({"search_query" : song})
-  html_queue = urllib.request.urlopen("https://www.youtube.com/results?"+query_queue)
-  results_queue = re.findall(r'url\"\:\"\/watch\?v\=(.*?(?=\"))', html_queue.read().decode())
-  next_in_queue = pafy.new(results_queue[0]) 
-  audio_queue = next_in_queue.getbestaudio() 
-  queued_song = FFmpegPCMAudio(audio_queue.url, **FFMPEG_OPTIONS)
+  if ctx.author.voice:
+    voice = ctx.guild.voice_client
+    query_queue = urllib.parse.urlencode({"search_query" : song})
+    html_queue = urllib.request.urlopen("https://www.youtube.com/results?"+query_queue)
+    results_queue = re.findall(r'url\"\:\"\/watch\?v\=(.*?(?=\"))', html_queue.read().decode())
+    next_in_queue = pafy.new(results_queue[0]) 
+    audio_queue = next_in_queue.getbestaudio() 
+    queued_song = FFmpegPCMAudio(audio_queue.url, **FFMPEG_OPTIONS)
 
-  guild_id = ctx.message.guild.id
+    guild_id = ctx.message.guild.id
 
-  if guild_id in queues:
-    queues[guild_id].append(queued_song)
-  
+    if guild_id in queues:
+      queues[guild_id].append(queued_song)
+    
+    else:
+      queues[guild_id] = [queued_song]
+    
+    await ctx.send(f"Next in queue: http://www.youtube.com/watch?v={results_queue[0]}")
+
   else:
-    queues[guild_id] = [queued_song]
-  
-  await ctx.send(f"Next in queue: http://www.youtube.com/watch?v={results_queue[0]}")
-
+    await ctx.send("You're not in a voice channel, ya dingus!")
+    
 @client.command()
 async def skip(ctx):
-  if len(queues) != 0:
-    voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
-    voice.stop()
-    check_queue(ctx, ctx.message.guild.id)
+  if ctx.author.voice:
+    if len(queues) != 0:
+      voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
+      voice.stop()
+      check_queue(ctx, ctx.message.guild.id)
+
+    else:
+      await ctx.send("Can't skip because there's no song in queue")
 
   else:
-    await ctx.send("Can't skip because there's no song in queue")
+    await ctx.send("You're not in a voice channel, ya dingus!")
 
 @client.command()
 async def previous(ctx): #TODO goes back to previous song
