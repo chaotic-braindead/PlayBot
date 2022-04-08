@@ -44,7 +44,7 @@ async def join(ctx):
       voice = await channel.connect()
 
     else:
-      await ctx.send("You must first join a voice channel")
+      await ctx.send(f"You must first join a voice channel, {ctx.author.mention}!")
 
 @client.command()
 async def leave(ctx):
@@ -53,36 +53,46 @@ async def leave(ctx):
       await ctx.send("I have left the voice channel")
 
     else:
-      await ctx.send("I am not in a voice channel, ya dingus")
+      await ctx.send(f"I am not in a voice channel, {ctx.author.mention}")
 
 @client.command()
 async def pause(ctx):
-  voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
+  if ctx.author.voice:
+    voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
 
-  if voice.is_playing():
-    voice.pause()
-    await ctx.send("Audio paused")
+    if voice.is_playing():
+      voice.pause()
+      await ctx.send("Audio paused")
 
-  else: 
-    await ctx.send("There is no audio being played")
+    else: 
+      await ctx.send("There is no audio being played")
+
+  else:
+    await ctx.send(f"You're not in a voice channel, {ctx.author.mention}!")
 
 @client.command()
 async def resume(ctx):
-  voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
+  if ctx.author.voice:
+    voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
 
-  if voice.is_paused():
-    voice.resume()
-    await ctx.send("Audio resumed")
+    if voice.is_paused():
+      voice.resume()
+      await ctx.send("Audio resumed")
 
-  else: 
-    await ctx.send("There is no currently playing audio")
+    else: 
+      await ctx.send("There is no currently playing audio")
+  else:
+    await ctx.send(f"You're not in a voice channel, {ctx.author.mention}!")
 
 @client.command()
 async def stop(ctx):
-  voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
-  voice.stop()
-  await ctx.send(f"Current song stopped")
-
+  if ctx.author.voice:
+    voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
+    voice.stop()
+    await ctx.send(f"Current song stopped")
+  else:
+    await ctx.send(f"You're not in a voice channel, {ctx.author.mention}!")
+    
 @client.command()
 async def play(ctx, song):
   if ctx.author.voice:
@@ -104,7 +114,7 @@ async def play(ctx, song):
     else:
       await ctx.send('There is a song currently playing.\n To add something to your queue, use the **!queue** command.\n To skip to the next song in queue, use the **!skip** command')
   else:
-    await ctx.send("You're not in a voice channel, ya dingus!")
+    await ctx.send(f"You're not in a voice channel, {ctx.author.mention}!")
 
 @client.command()
 async def queue(ctx, song):
@@ -128,8 +138,8 @@ async def queue(ctx, song):
     await ctx.send(f"Next in queue: http://www.youtube.com/watch?v={results_queue[0]}")
 
   else:
-    await ctx.send("You're not in a voice channel, ya dingus!")
-    
+    await ctx.send(f"You're not in a voice channel, {ctx.author}!")
+
 @client.command()
 async def skip(ctx):
   if ctx.author.voice:
@@ -142,7 +152,7 @@ async def skip(ctx):
       await ctx.send("Can't skip because there's no song in queue")
 
   else:
-    await ctx.send("You're not in a voice channel, ya dingus!")
+    await ctx.send(f"You're not in a voice channel, {ctx.author.mention}!")
 
 @client.command()
 async def previous(ctx): #TODO goes back to previous song
