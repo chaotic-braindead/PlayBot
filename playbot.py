@@ -163,7 +163,7 @@ async def play(ctx, *args):
       await ctx.send(f"Now playing: http://www.youtube.com/watch?v={search_resultsyt[i]}")
       
     else:
-      await ctx.send('There is a song currently playing.\n To add something to your queue, use the **!q** command.\n To skip to the next song in queue, use the **!skip** command')
+      await ctx.send('There is a song currently playing.\nTo __add something__ to your queue, use the **!q** command.\nTo __skip to the next song__ in queue, use the **!skip** command')
    
 @client.command()
 async def q(ctx, *args):
