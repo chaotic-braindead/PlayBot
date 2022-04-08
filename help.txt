@@ -1,0 +1,12 @@
+**__List of commands (Quotation marks should be included):__**
+
+**!join** - Lets me join the voice channel
+**!leave** - Lets me leave the voice channel
+
+**__These only work when I'm in a voice channel:__**
+
+**!play "song name"** - Lets me play a song (only works when I'm in a voice channel)
+**!queue "song name"** - Adds a song to the queue 
+**!pause** - Pauses the current song
+**!resume** - Resumes the paused song
+**!skip** - Skips song to the next one in your queue
