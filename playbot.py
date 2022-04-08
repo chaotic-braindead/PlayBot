@@ -17,21 +17,17 @@ def check_queue(ctx, id):
   voice_check = discord.utils.get(client.voice_clients, guild=ctx.guild)
   
   if len(queues[id]) != 0:
-    print(len(queues[id]))
+    # print(len(queues[id]))
     time.sleep(1.5)
     voice = ctx.guild.voice_client
-    # voice_check.stop()
     source = queues[id].pop(0)
     player = voice.play(source, after=lambda x=None: check_queue(ctx, ctx.message.guild.id))
-    print(queues)
+    # print(queues)
   
 def remove(ctx, id):
   if len(queues[id]) != 0:
     queues[id].pop(len(queues[id])-1)
-  # if not voice_check.is_playing():
-  #   player = voice.play(source)
-    # voice.play(source)
-  
+
 def is_connected(ctx):
     voice_client = discord.utils.get(ctx.bot.voice_clients, guild=ctx.guild)
     return voice_client.is_connected()
@@ -140,15 +136,13 @@ async def play(ctx, song):
       audio = newsong.getbestaudio() 
       newsource = FFmpegPCMAudio(audio.url, **FFMPEG_OPTIONS)
       time.sleep(1)
-      print(ctx.message.guild.id)
+      # print(ctx.message.guild.id)
       time.sleep(1)
       voice.play(newsource, after=lambda x=None: check_queue(ctx, ctx.message.guild.id)) 
       
     else:
       await ctx.send('There is a song currently playing.\n To add something to your queue, use the **!q** command.\n To skip to the next song in queue, use the **!skip** command')
-  
-    
-
+   
 @client.command()
 async def q(ctx, song):
   if not ctx.voice_client:
@@ -167,7 +161,7 @@ async def q(ctx, song):
 
     if guild_id in queues:
       queues[guild_id].append(queued_song)
-      print(queued_song)
+      # print(queued_song)
     
     else:
       queues[guild_id] = [queued_song]
@@ -188,16 +182,14 @@ async def skip(ctx):
       voice.stop()
       check_queue(ctx, ctx.message.guild.id)
 
-    # else:
-      # await ctx.send("Can't skip because there's no song in queue")
-
   else:
     await ctx.send(f"You're not in a voice channel, {ctx.author.mention}!")
 
 @client.command()
 async def rq(ctx):
-  remove(ctx, ctx.message.guild.id)
-  await ctx.send('Removed last song from queue')
+  if ctx.author.voice:
+    remove(ctx, ctx.message.guild.id)
+    await ctx.send('Removed last song from queue')
 
 @client.command()
 async def previous(ctx): #TODO goes back to previous song
