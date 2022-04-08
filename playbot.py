@@ -7,6 +7,8 @@ import urllib.parse
 import pafy
 import re
 import time
+import pyjokes
+import wikipedia
 
 FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5','options': '-vn'}
 client = commands.Bot(command_prefix='!')
@@ -35,6 +37,16 @@ async def on_ready():
 @client.command()
 async def hello(ctx):
     await ctx.send(f"Hello, {ctx.message.author.mention}! If you need help with my commands, just type **!helpme**")
+
+@client.command()
+async def joke(ctx):
+  joke = pyjokes.get_joke()
+  await ctx.send(joke)
+
+@client.command()
+async def summary(ctx, topic):
+  info = wikipedia.summary(topic, sentences=3)
+  await ctx.send(info)
 
 @client.command()
 async def helpme(ctx):
