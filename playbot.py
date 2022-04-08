@@ -23,6 +23,10 @@ def check_queue(ctx, id):
 
   if not voice_check.is_playing():
     voice.play(source)
+  
+def is_connected(ctx):
+    voice_client = discord.utils.get(ctx.bot.voice_clients, guild=ctx.guild)
+    return voice_client.is_connected()
 
 @client.event
 async def on_ready():
@@ -42,6 +46,7 @@ async def join(ctx):
     if ctx.author.voice:
       channel = ctx.message.author.voice.channel
       voice = await channel.connect()
+      await ctx.send(f"Joined **{channel}**")
 
     else:
       await ctx.send(f"You must first join a voice channel, {ctx.author.mention}!")
@@ -57,6 +62,9 @@ async def leave(ctx):
 
 @client.command()
 async def pause(ctx):
+  if not ctx.voice_client:
+    await ctx.send(f"I am not in a voice channel, {ctx.author.mention}! Having trouble? Use the **!helpme** command. ")
+
   if ctx.author.voice:
     voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
 
@@ -72,6 +80,9 @@ async def pause(ctx):
 
 @client.command()
 async def resume(ctx):
+  if not ctx.voice_client:
+    await ctx.send(f"I am not in a voice channel, {ctx.author.mention}! Having trouble? Use the **!helpme** command. ")
+
   if ctx.author.voice:
     voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
 
@@ -86,6 +97,9 @@ async def resume(ctx):
 
 @client.command()
 async def stop(ctx):
+  if not ctx.voice_client:
+    await ctx.send(f"I am not in a voice channel, {ctx.author.mention}! Having trouble? Use the **!helpme** command. ")
+
   if ctx.author.voice:
     voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
     voice.stop()
@@ -95,7 +109,16 @@ async def stop(ctx):
     
 @client.command()
 async def play(ctx, song):
-  if ctx.author.voice:
+  if not ctx.voice_client and ctx.author.voice:
+    channel = ctx.message.author.voice.channel
+    voice_connect = await channel.connect()
+    await ctx.send(f"Joined **{channel}**")
+    
+  if not ctx.author.voice:
+    await ctx.send(f"You're not in a voice channel, {ctx.author.mention}!")
+
+  else:
+    time.sleep(1.5)
     voice = ctx.guild.voice_client
     play_check = discord.utils.get(client.voice_clients, guild=ctx.guild)
     
@@ -112,12 +135,15 @@ async def play(ctx, song):
       voice.play(newsource, after=lambda x=None: check_queue(ctx, ctx.message.guild.id)) 
 
     else:
-      await ctx.send('There is a song currently playing.\n To add something to your queue, use the **!queue** command.\n To skip to the next song in queue, use the **!skip** command')
-  else:
-    await ctx.send(f"You're not in a voice channel, {ctx.author.mention}!")
+      await ctx.send('There is a song currently playing.\n To add something to your queue, use the **!q** command.\n To skip to the next song in queue, use the **!skip** command')
+  
+    
 
 @client.command()
-async def queue(ctx, song):
+async def q(ctx, song):
+  if not ctx.voice_client:
+    await ctx.send(f"I am not in a voice channel, {ctx.author.mention}! Having trouble? Use the **!helpme** command. ")
+
   if ctx.author.voice:
     voice = ctx.guild.voice_client
     query_queue = urllib.parse.urlencode({"search_query" : song})
@@ -138,10 +164,13 @@ async def queue(ctx, song):
     await ctx.send(f"Next in queue: http://www.youtube.com/watch?v={results_queue[0]}")
 
   else:
-    await ctx.send(f"You're not in a voice channel, {ctx.author}!")
+    await ctx.send(f"You're not in a voice channel, {ctx.author.mention}!")
 
 @client.command()
 async def skip(ctx):
+  if not ctx.voice_client:
+    await ctx.send(f"I am not in a voice channel, {ctx.author.mention}! Having trouble? Use the **!helpme** command. ")
+
   if ctx.author.voice:
     if len(queues) != 0:
       voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
@@ -156,6 +185,10 @@ async def skip(ctx):
 
 @client.command()
 async def previous(ctx): #TODO goes back to previous song
+  pass
+
+@client.command()
+async def qremove(ctx): #TODO removes song from queue
   pass
 
 @client.event
