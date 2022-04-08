@@ -4,7 +4,7 @@
 **!leave** - Lets me leave the voice channel
 
 
-**__These only work when I'm in a voice channel:__**
+**__These only work when we are both in a voice channel:__**
 
 **!q "song name"** - Adds a song to the queue 
 **!stop** - Stops current song
