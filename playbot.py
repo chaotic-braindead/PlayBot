@@ -62,10 +62,10 @@ async def pause(ctx):
 
     if voice.is_playing():
       voice.pause()
-      await ctx.send("Audio paused")
+      await ctx.send("Song paused")
 
     else: 
-      await ctx.send("There is no audio being played")
+      await ctx.send("There is no song being played")
 
   else:
     await ctx.send(f"You're not in a voice channel, {ctx.author.mention}!")
@@ -77,7 +77,7 @@ async def resume(ctx):
 
     if voice.is_paused():
       voice.resume()
-      await ctx.send("Audio resumed")
+      await ctx.send("Song resumed")
 
     else: 
       await ctx.send("There is no currently playing audio")
