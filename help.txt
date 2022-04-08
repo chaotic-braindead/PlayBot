@@ -1,14 +1,12 @@
-**__List of commands (Quotation marks should be included):__**
-
-**!play "song name"** - Lets me play a song in your current voice channel
+**__List of commands:__**
+**!play (song name)** - Lets me play a song in your current voice channel
 **!join** - Lets me join your current voice channel
 **!leave** - Lets me leave the voice channel
 **!joke** - Lets me tell you programming jokes
-**!summary "topic"** - Lets me tell you something about any topic 
+**!summary (topic)** - Lets me tell you something about any topic 
 
 **__These only work when we are both in a voice channel:__**
-
-**!q "song name"** - Adds a song to the queue 
+**!q (song name)** - Adds a song to the queue 
 **!rq** - Removes the last added song from the queue 
 **!stop** - Stops current song
 **!pause** - Pauses the current song

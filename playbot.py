@@ -32,6 +32,7 @@ def is_connected(ctx):
 
 @client.event
 async def on_ready():
+    await client.change_presence(status=discord.Status.idle, activity=discord.Game('!helpme || @raffy'))
     print(f'Logged in as {client.user}')
 
 @client.command()
@@ -44,13 +45,18 @@ async def joke(ctx):
   await ctx.send(joke)
 
 @client.command()
-async def summary(ctx, topic):
+async def summary(ctx, *args):
+  topic = ""
+
+  for arg in args:
+    topic += arg 
+
   info = wikipedia.summary(topic, auto_suggest=False, sentences=2)
   await ctx.send(info)
 
 @client.command()
 async def helpme(ctx):
-  with open('help.txt') as f:
+  with open(r'C:\Users\raf\Desktop\Github\PlayBot\help.txt') as f:
     await ctx.send(f.read())
 
 @client.command()
@@ -120,7 +126,12 @@ async def stop(ctx):
     await ctx.send(f"You're not in a voice channel, {ctx.author.mention}!")
     
 @client.command()
-async def play(ctx, song):
+async def play(ctx, *args):
+  play_name = ""
+
+  for arg in args:
+    play_name += arg 
+
   if not ctx.voice_client and ctx.author.voice:
     channel = ctx.message.author.voice.channel
     voice_connect = await channel.connect()
@@ -135,7 +146,7 @@ async def play(ctx, song):
     play_check = discord.utils.get(client.voice_clients, guild=ctx.guild)
     
     if not play_check.is_playing():
-      query_stringyt = urllib.parse.urlencode({"search_query" : song})
+      query_stringyt = urllib.parse.urlencode({"search_query" : play_name})
       html_contentyt = urllib.request.urlopen("https://www.youtube.com/results?"+query_stringyt)
       search_resultsyt = re.findall(r'url\"\:\"\/watch\?v\=(.*?(?=\"))', html_contentyt.read().decode())
       
@@ -155,13 +166,18 @@ async def play(ctx, song):
       await ctx.send('There is a song currently playing.\n To add something to your queue, use the **!q** command.\n To skip to the next song in queue, use the **!skip** command')
    
 @client.command()
-async def q(ctx, song):
+async def q(ctx, *args):
+  q_name = ""
+
+  for arg in args:
+    q_name += arg 
+
   if not ctx.voice_client:
     await ctx.send(f"I am not in a voice channel, {ctx.author.mention}! Having trouble? Use the **!helpme** command. ")
   else:
     if ctx.author.voice:
       voice = ctx.guild.voice_client
-      query_queue = urllib.parse.urlencode({"search_query" : song})
+      query_queue = urllib.parse.urlencode({"search_query" : q_name})
       html_queue = urllib.request.urlopen("https://www.youtube.com/results?"+query_queue)
       results_queue = re.findall(r'url\"\:\"\/watch\?v\=(.*?(?=\"))', html_queue.read().decode())
 
