@@ -9,6 +9,7 @@ import re
 import time
 import pyjokes
 import wikipedia
+import youtube_dl
 
 FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5','options': '-vn'}
 client = commands.Bot(command_prefix='!')
@@ -138,15 +139,18 @@ async def play(ctx, song):
       query_stringyt = urllib.parse.urlencode({"search_query" : song})
       html_contentyt = urllib.request.urlopen("https://www.youtube.com/results?"+query_stringyt)
       search_resultsyt = re.findall(r'url\"\:\"\/watch\?v\=(.*?(?=\"))', html_contentyt.read().decode())
-      await ctx.send(f"Now playing: http://www.youtube.com/watch?v={search_resultsyt[0]}")
-
-      newsong = pafy.new(search_resultsyt[0]) 
+      
+      i = 0
+      newsong = pafy.new(search_resultsyt[i]) 
+      if newsong.length >= 600:
+        i += 1
+      newsong = pafy.new(search_resultsyt[i])
       audio = newsong.getbestaudio() 
       newsource = FFmpegPCMAudio(audio.url, **FFMPEG_OPTIONS)
       time.sleep(1)
       # print(ctx.message.guild.id)
-      time.sleep(1)
       voice.play(newsource, after=lambda x=None: check_queue(ctx, ctx.message.guild.id)) 
+      await ctx.send(f"Now playing: http://www.youtube.com/watch?v={search_resultsyt[i]}")
       
     else:
       await ctx.send('There is a song currently playing.\n To add something to your queue, use the **!q** command.\n To skip to the next song in queue, use the **!skip** command')
@@ -161,7 +165,12 @@ async def q(ctx, song):
       query_queue = urllib.parse.urlencode({"search_query" : song})
       html_queue = urllib.request.urlopen("https://www.youtube.com/results?"+query_queue)
       results_queue = re.findall(r'url\"\:\"\/watch\?v\=(.*?(?=\"))', html_queue.read().decode())
-      next_in_queue = pafy.new(results_queue[0]) 
+
+      i = 0
+      next_in_queue = pafy.new(results_queue[i]) 
+      if next_in_queue.length >= 600:
+        i += 1
+      next_in_queue = pafy.new(results_queue[i]) 
       audio_queue = next_in_queue.getbestaudio() 
       queued_song = FFmpegPCMAudio(audio_queue.url, **FFMPEG_OPTIONS)
 
@@ -174,7 +183,7 @@ async def q(ctx, song):
       else:
         queues[guild_id] = [queued_song]
       
-      await ctx.send(f"Next in queue: http://www.youtube.com/watch?v={results_queue[0]}")
+      await ctx.send(f"Next in queue: http://www.youtube.com/watch?v={results_queue[i]}")
 
     else:
       await ctx.send(f"You're not in a voice channel, {ctx.author.mention}!")
