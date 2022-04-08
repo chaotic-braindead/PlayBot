@@ -39,7 +39,7 @@ async def helpme(ctx):
 
 @client.command()
 async def join(ctx):
-    if(ctx.author.voice):
+    if ctx.author.voice:
       channel = ctx.message.author.voice.channel
       voice = await channel.connect()
 
@@ -48,7 +48,7 @@ async def join(ctx):
 
 @client.command()
 async def leave(ctx):
-    if(ctx.voice_client):
+    if ctx.voice_client:
       await ctx.guild.voice_client.disconnect()
       await ctx.send("I have left the voice channel")
 
