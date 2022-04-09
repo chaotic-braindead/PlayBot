@@ -27,7 +27,9 @@ def check_queue(ctx, id):
     time.sleep(1.5)
     voice = ctx.guild.voice_client
     source = queues[id].pop(0)
+    titles.pop(0)
     player = voice.play(source, after=lambda x=None: check_queue(ctx, ctx.message.guild.id))
+    
     
 def is_connected(ctx):
     voice_client = discord.utils.get(ctx.bot.voice_clients, guild=ctx.guild)
@@ -253,7 +255,7 @@ async def rq(ctx):
     await ctx.send(f"You're not in a voice channel, {ctx.author.mention}! Having trouble? Use the **!helpme** command. ")
 
 
-@client.command(aliases=['list', 'sq', 'vq'])
+@client.command(aliases=['list', 'sq', 'vq', 'view'])
 async def qs(ctx):
   if ctx.author.voice:
     await ctx.send(f"**Queued songs**: {list(titles[i] for i in range(0,len(titles)))}")
