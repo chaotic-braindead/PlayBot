@@ -1,3 +1,4 @@
+from ast import alias
 import discord
 from discord.ext import commands
 from discord import FFmpegPCMAudio
@@ -22,13 +23,12 @@ def check_queue(ctx, id):
   voice_check = discord.utils.get(client.voice_clients, guild=ctx.guild)
   
   if len(queues[id]) != 0:
-    # print(len(queues[id]))
+    
     time.sleep(1.5)
     voice = ctx.guild.voice_client
     source = queues[id].pop(0)
     player = voice.play(source, after=lambda x=None: check_queue(ctx, ctx.message.guild.id))
-    # print(queues)
-
+    
 def is_connected(ctx):
     voice_client = discord.utils.get(ctx.bot.voice_clients, guild=ctx.guild)
     return voice_client.is_connected()
@@ -73,7 +73,7 @@ async def helpme(ctx):
   with open(r'C:\Users\raf\Desktop\Github\PlayBot\help.txt') as f:
     await ctx.send(f.read())
 
-@client.command()
+@client.command(aliases=['start'])
 async def join(ctx):
     if ctx.author.voice:
       channel = ctx.message.author.voice.channel
@@ -83,7 +83,7 @@ async def join(ctx):
     else:
       await ctx.send(f"You must first join a voice channel, {ctx.author.mention}!")
 
-@client.command()
+@client.command(aliases=['end','done'])
 async def leave(ctx):
     if ctx.voice_client:
       await ctx.guild.voice_client.disconnect()
@@ -110,7 +110,7 @@ async def pause(ctx):
   else:
     await ctx.send(f"You're not in a voice channel, {ctx.author.mention}!")
 
-@client.command()
+@client.command(aliases=['continue', 'res'])
 async def resume(ctx):
   if not ctx.voice_client:
     await ctx.send(f"I am not in a voice channel, {ctx.author.mention}! Having trouble? Use the **!helpme** command. ")
@@ -139,7 +139,7 @@ async def stop(ctx):
   else:
     await ctx.send(f"You're not in a voice channel, {ctx.author.mention}!")
     
-@client.command()
+@client.command(aliases=['p', 'song'])
 async def play(ctx, *args):
   play_name = ""
 
@@ -180,7 +180,7 @@ async def play(ctx, *args):
     else:
       await ctx.send('There is a song currently playing.\nTo __add something__ to your queue, use the **!q** command.\nTo __skip to the next song__ in queue, use the **!skip** command')
    
-@client.command()
+@client.command(aliases=['queue','addsong'])
 async def q(ctx, *args):
   q_name = ""
 
@@ -219,7 +219,7 @@ async def q(ctx, *args):
     else:
       await ctx.send(f"You're not in a voice channel, {ctx.author.mention}!")
 
-@client.command()
+@client.command(aliases=['next'])
 async def skip(ctx):
   if not ctx.voice_client:
     await ctx.send(f"I am not in a voice channel, {ctx.author.mention}! Having trouble? Use the **!helpme** command. ")
@@ -232,7 +232,7 @@ async def skip(ctx):
   else:
     await ctx.send(f"You're not in a voice channel, {ctx.author.mention}!")
 
-@client.command()
+@client.command(aliases=['remove', 'rem'])
 async def rq(ctx):
   if ctx.author.voice:
     if queues[ctx.message.guild.id] != [] and titles != []:
@@ -249,7 +249,7 @@ async def rq(ctx):
     else:
       await ctx.send("No more queues to remove")
 
-@client.command()
+@client.command(aliases=['list', 'sq', 'vq'])
 async def qs(ctx):
   await ctx.send(f"**Queued songs**: {list(titles[i] for i in range(0,len(titles)))}")
 @client.command()
