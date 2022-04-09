@@ -6,12 +6,13 @@
 **!summary (topic)** - Lets me tell you something about any topic 
 
 **__These only work when we are both in a voice channel:__**
-**!q (song name)** - Adds a song to the queue 
-**!rq** - Removes the last added song from the queue 
-**!stop** - Stops current song
-**!pause** - Pauses the current song
-**!resume** - Resumes the paused song
-**!skip** - Skips song to the next one in your queue
+**!q (song name)** - Add a song to the queue 
+**!rq** - Remove the last added song from the queue 
+**!qs** - View queued songs
+**!stop** - Stop current song
+**!pause** - Pause the current song
+**!resume** - Resume the paused song
+**!skip** - Skip song to the next one in your queue
 
 
 

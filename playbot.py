@@ -9,10 +9,13 @@ import re
 import time
 import pyjokes
 import wikipedia
+import urllib
+import json
 
 FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5','options': '-vn'}
 client = commands.Bot(command_prefix='!')
 queues = {}
+titles = []
 key_words = {'good bot': 'Why thank you,', 'bad bot': "I'm sorry. I'll do better next time,"}
 
 def check_queue(ctx, id):
@@ -29,6 +32,17 @@ def check_queue(ctx, id):
 def is_connected(ctx):
     voice_client = discord.utils.get(ctx.bot.voice_clients, guild=ctx.guild)
     return voice_client.is_connected()
+
+def scrape_info(url):
+    params = {"format": "json", "url": "https://www.youtube.com/watch?v=%s" % url}
+    url = "https://www.youtube.com/oembed"
+    query_string = urllib.parse.urlencode(params)
+    url = url + "?" + query_string
+
+    with urllib.request.urlopen(url) as response:
+        response_text = response.read()
+        data = json.loads(response_text.decode())
+        return data['title']
 
 @client.event
 async def on_ready():
@@ -160,7 +174,8 @@ async def play(ctx, *args):
       time.sleep(1)
       # print(ctx.message.guild.id)
       voice.play(newsource, after=lambda x=None: check_queue(ctx, ctx.message.guild.id)) 
-      await ctx.send(f"Now playing: http://www.youtube.com/watch?v={search_resultsyt[i]}")
+      final_link = f"http://www.youtube.com/watch?v={search_resultsyt[i]}"
+      await ctx.send(f"Now playing: **{scrape_info(search_resultsyt[i])}**\n{final_link}")
       
     else:
       await ctx.send('There is a song currently playing.\nTo __add something__ to your queue, use the **!q** command.\nTo __skip to the next song__ in queue, use the **!skip** command')
@@ -193,13 +208,14 @@ async def q(ctx, *args):
 
       if guild_id in queues:
         queues[guild_id].append(queued_song)
-        # print(queued_song)
+        titles.append(scrape_info(results_queue[i]))
       
       else:
         queues[guild_id] = [queued_song]
+        titles.append(scrape_info(results_queue[i]))
       
-      await ctx.send(f"Next in queue: http://www.youtube.com/watch?v={results_queue[i]}")
-
+      await ctx.send(f"Next in queue: **{scrape_info(results_queue[i])}**\nhttp://www.youtube.com/watch?v={results_queue[i]}")
+      await ctx.send(f"**Queued songs**: {list(titles[i] for i in range(0,len(titles)))}")
     else:
       await ctx.send(f"You're not in a voice channel, {ctx.author.mention}!")
 
@@ -219,12 +235,23 @@ async def skip(ctx):
 @client.command()
 async def rq(ctx):
   if ctx.author.voice:
-    if queues[ctx.message.guild.id] != []:
-      queues[ctx.message.guild.id].pop(len(queues[ctx.message.guild.id])-1)
-      await ctx.send('Removed last song from queue')
+    if queues[ctx.message.guild.id] != [] and titles != []:
+      try:
+        queues[ctx.message.guild.id].pop(len(queues[ctx.message.guild.id])-1)
+        await ctx.send(f'Removed **{titles[-1]}** from queue')
+        titles.pop()
+        await ctx.send(f"**Queued songs**: {list(titles[i] for i in range(0,len(titles)))}")
+      except IndexError:
+        queues[ctx.message.guild.id].pop(len(queues[ctx.message.guild.id]))
+        await ctx.send(f'Removed **{titles[-1]}** from queue')
+        titles.pop()
+        await ctx.send(f"**Queued songs**: {list(titles[i] for i in range(0,len(titles)))}")
     else:
       await ctx.send("No more queues to remove")
 
+@client.command()
+async def qs(ctx):
+  await ctx.send(f"**Queued songs**: {list(titles[i] for i in range(0,len(titles)))}")
 @client.command()
 async def previous(ctx): #TODO goes back to previous song
   pass
