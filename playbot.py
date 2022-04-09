@@ -111,7 +111,7 @@ async def pause(ctx):
     await ctx.send(f"You're not in a voice channel, {ctx.author.mention}!")
 
 @client.command(aliases=['continue', 'res'])
-async def resume(ctx):
+async def play(ctx):
   if not ctx.voice_client:
     await ctx.send(f"I am not in a voice channel, {ctx.author.mention}! Having trouble? Use the **!helpme** command. ")
 
@@ -139,8 +139,8 @@ async def stop(ctx):
   else:
     await ctx.send(f"You're not in a voice channel, {ctx.author.mention}!")
     
-@client.command(aliases=['p', 'song'])
-async def play(ctx, *args):
+@client.command()
+async def song(ctx, *args):
   play_name = ""
 
   for arg in args:
@@ -180,7 +180,7 @@ async def play(ctx, *args):
     else:
       await ctx.send('There is a song currently playing.\nTo __add something__ to your queue, use the **!q** command.\nTo __skip to the next song__ in queue, use the **!skip** command')
    
-@client.command(aliases=['queue','addsong'])
+@client.command(aliases=['queue','add'])
 async def q(ctx, *args):
   q_name = ""
 

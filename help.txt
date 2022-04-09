@@ -1,5 +1,5 @@
 **__List of commands:__**
-**!play (song name)** - Lets me play a song in your current voice channel
+**!song (song name)** - Lets me play a song in your current voice channel
 **!join** - Lets me join your current voice channel
 **!leave** - Lets me leave the voice channel
 **!joke** - Lets me tell you programming jokes
@@ -11,7 +11,7 @@
 **!qs** - View queued songs
 **!stop** - Stop current song
 **!pause** - Pause the current song
-**!resume** - Resume the paused song
+**!play** - Resume the paused song
 **!skip** - Skip song to the next one in your queue
 
 
