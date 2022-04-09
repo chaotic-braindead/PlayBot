@@ -13,6 +13,8 @@
 **!pause** - Pause the current song
 **!play** - Resume the paused song
 **!skip** - Skip song to the next one in your queue
+**!now** - Shows the title of the current playing song
+**!lyrics** - Shows lyrics of current song
 
 
 
