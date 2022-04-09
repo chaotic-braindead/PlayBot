@@ -24,7 +24,7 @@ def check_queue(ctx, id):
   
   if len(queues[id]) != 0:
     
-    time.sleep(1.5)
+    # time.sleep(1)
     voice = ctx.guild.voice_client
     source = queues[id].pop(0)
     titles.pop(0)
@@ -146,7 +146,9 @@ async def song(ctx, *args):
   play_name = ""
 
   for arg in args:
-    play_name += arg 
+    play_name += f"{arg} "
+  
+  play_name += "audio"
 
   if not ctx.voice_client and ctx.author.voice:
     channel = ctx.message.author.voice.channel
@@ -157,12 +159,12 @@ async def song(ctx, *args):
     await ctx.send(f"You're not in a voice channel, {ctx.author.mention}!")
 
   else:
-    time.sleep(1.5)
+    # time.sleep(0.5)
     voice = ctx.guild.voice_client
     play_check = discord.utils.get(client.voice_clients, guild=ctx.guild)
     
     if not play_check.is_playing():
-      query_stringyt = urllib.parse.urlencode({"search_query" : play_name})
+      query_stringyt = urllib.parse.urlencode({"search_query" : play_name.rstrip()})
       html_contentyt = urllib.request.urlopen("https://www.youtube.com/results?"+query_stringyt)
       search_resultsyt = re.findall(r'url\"\:\"\/watch\?v\=(.*?(?=\"))', html_contentyt.read().decode())
       
@@ -170,11 +172,12 @@ async def song(ctx, *args):
       newsong = pafy.new(search_resultsyt[i]) 
       if newsong.length >= 600:
         i += 1
+
       newsong = pafy.new(search_resultsyt[i])
       audio = newsong.getbestaudio() 
       newsource = FFmpegPCMAudio(audio.url, **FFMPEG_OPTIONS)
-      time.sleep(1)
-      # print(ctx.message.guild.id)
+
+      time.sleep(1.25)
       voice.play(newsource, after=lambda x=None: check_queue(ctx, ctx.message.guild.id)) 
       final_link = f"http://www.youtube.com/watch?v={search_resultsyt[i]}"
       await ctx.send(f"Now playing: **{scrape_info(search_resultsyt[i])}**\n{final_link}")
@@ -187,14 +190,16 @@ async def q(ctx, *args):
   q_name = ""
 
   for arg in args:
-    q_name += arg 
+    q_name += f"{arg} "
+
+  q_name += "audio"
 
   if not ctx.voice_client:
     await ctx.send(f"I am not in a voice channel, {ctx.author.mention}! Having trouble? Use the **!helpme** command. ")
   else:
     if ctx.author.voice:
       voice = ctx.guild.voice_client
-      query_queue = urllib.parse.urlencode({"search_query" : q_name})
+      query_queue = urllib.parse.urlencode({"search_query" : q_name.rstrip()})
       html_queue = urllib.request.urlopen("https://www.youtube.com/results?"+query_queue)
       results_queue = re.findall(r'url\"\:\"\/watch\?v\=(.*?(?=\"))', html_queue.read().decode())
 
