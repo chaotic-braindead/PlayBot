@@ -35,17 +35,6 @@ def is_connected(ctx):
     voice_client = discord.utils.get(ctx.bot.voice_clients, guild=ctx.guild)
     return voice_client.is_connected()
 
-def scrape_info(url):
-    params = {"format": "json", "url": "https://www.youtube.com/watch?v=%s" % url}
-    url = "https://www.youtube.com/oembed"
-    query_string = urllib.parse.urlencode(params)
-    url = url + "?" + query_string
-
-    with urllib.request.urlopen(url) as response:
-        response_text = response.read()
-        data = json.loads(response_text.decode())
-        return data['title']
-
 @client.event
 async def on_ready():
     await client.change_presence(status=discord.Status.idle, activity=discord.Game('!helpme || @raffy'))
@@ -180,7 +169,7 @@ async def song(ctx, *args):
       time.sleep(1.25)
       voice.play(newsource, after=lambda x=None: check_queue(ctx, ctx.message.guild.id)) 
       final_link = f"http://www.youtube.com/watch?v={search_resultsyt[i]}"
-      await ctx.send(f"Now playing: **{scrape_info(search_resultsyt[i])}**\n{final_link}")
+      await ctx.send(f"Now playing: **{newsong.title}**\n{final_link}")
       
     else:
       await ctx.send('There is a song currently playing.\nTo __add something__ to your queue, use the **!q** command.\nTo __skip to the next song__ in queue, use the **!skip** command')
@@ -215,13 +204,13 @@ async def q(ctx, *args):
 
       if guild_id in queues:
         queues[guild_id].append(queued_song)
-        titles.append(scrape_info(results_queue[i]))
+        titles.append(next_in_queue.title)
       
       else:
         queues[guild_id] = [queued_song]
-        titles.append(scrape_info(results_queue[i]))
+        titles.append(next_in_queue.title)
       
-      await ctx.send(f"Added to queue: **{scrape_info(results_queue[i])}**\nhttp://www.youtube.com/watch?v={results_queue[i]}")
+      await ctx.send(f"Added to queue: **{next_in_queue.title}**\nhttp://www.youtube.com/watch?v={results_queue[i]}")
       await ctx.send(f"**Queued songs**: {list(titles[i] for i in range(0,len(titles)))}")
     else:
       await ctx.send(f"You're not in a voice channel, {ctx.author.mention}!")
