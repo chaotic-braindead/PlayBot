@@ -214,7 +214,7 @@ async def q(ctx, *args):
         queues[guild_id] = [queued_song]
         titles.append(scrape_info(results_queue[i]))
       
-      await ctx.send(f"Next in queue: **{scrape_info(results_queue[i])}**\nhttp://www.youtube.com/watch?v={results_queue[i]}")
+      await ctx.send(f"Added to queue: **{scrape_info(results_queue[i])}**\nhttp://www.youtube.com/watch?v={results_queue[i]}")
       await ctx.send(f"**Queued songs**: {list(titles[i] for i in range(0,len(titles)))}")
     else:
       await ctx.send(f"You're not in a voice channel, {ctx.author.mention}!")
@@ -249,9 +249,17 @@ async def rq(ctx):
     else:
       await ctx.send("No more queues to remove")
 
+  else:
+    await ctx.send(f"You're not in a voice channel, {ctx.author.mention}! Having trouble? Use the **!helpme** command. ")
+
+
 @client.command(aliases=['list', 'sq', 'vq'])
 async def qs(ctx):
-  await ctx.send(f"**Queued songs**: {list(titles[i] for i in range(0,len(titles)))}")
+  if ctx.author.voice:
+    await ctx.send(f"**Queued songs**: {list(titles[i] for i in range(0,len(titles)))}")
+  else:
+    await ctx.send(f"You're not in a voice channel, {ctx.author.mention}! Having trouble? Use the **!helpme** command. ")
+
 @client.command()
 async def previous(ctx): #TODO goes back to previous song
   pass
