@@ -154,8 +154,10 @@ async def song(ctx, *args):
   
   play_name += "audio"
 
-  if not ctx.voice_client and ctx.author.voice:
+  if not ctx.voice_client or ctx.author.voice:
     channel = ctx.message.author.voice.channel
+    titles_on_song_command.clear()
+    titles.clear()
     voice_connect = await channel.connect()
     await ctx.send(f"Joined **{channel}**")
     
