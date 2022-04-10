@@ -345,12 +345,12 @@ async def on_message(message):
     await client.process_commands(message)
 
 @lyrics.error
-async def info_error(ctx, error): # This might need to be (error, ctx), I'm not sure
+async def info_error(ctx, error):
     if isinstance(error, commands.CommandInvokeError):
         await ctx.send('Lyrics are currently unavailable')
 
 @client.event
-async def on_command_error(ctx, error): # This might need to be (error, ctx), I'm not sure
+async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound):
         await ctx.send('Invalid command. Having trouble? Use the **!helpme** command.')
     
