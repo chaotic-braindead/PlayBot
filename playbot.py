@@ -18,6 +18,8 @@ client = commands.Bot(command_prefix='!')
 queues = {}
 titles = []
 titles_on_song_command = []
+author_not_in_voice_channel = "You're not in a voice channel! Having trouble? Use the **!helpme** command."
+bot_not_in_voice_channel = "I am not in a voice channel! Having trouble? Use the **!helpme** command."
 
 key_words = {'good bot': 'Why thank you,', 'bad bot': "I'm sorry. I'll do better next time,"}
   
@@ -31,10 +33,6 @@ def check_queue(ctx, id):
     player = voice.play(source, after=lambda x=None: check_queue(ctx, ctx.message.guild.id))
     titles.pop(0)
     titles_on_song_command.pop(0)
-    
-def is_connected(ctx):
-    voice_client = discord.utils.get(ctx.bot.voice_clients, guild=ctx.guild)
-    return voice_client.is_connected()
 
 @client.event
 async def on_ready():
@@ -43,16 +41,21 @@ async def on_ready():
 
 @client.command()
 async def hello(ctx):
-    await ctx.send(f"Hello, {ctx.message.author.mention}! If you need help with my commands, just type **!helpme**")
+    await ctx.reply(f"Hello, {ctx.message.author.mention}! If you need help with my commands, just type **!helpme**", mention_author=False)
 
 @client.command()
 async def now(ctx):
   voice = discord.utils.get(ctx.bot.voice_clients, guild=ctx.guild)
   if ctx.author.voice:
-     await ctx.send(f"Now playing: **{titles_on_song_command[0]}**")
+    if voice.is_playing():
+      print(f'def now {titles_on_song_command}')
+      await ctx.send(f"Now playing: **{titles_on_song_command[0]}**")
+      print(f'def now {titles_on_song_command}')
+    else:
+      await ctx.send(f"No song is playing")
 
   else:
-      await ctx.send(f"You must first join a voice channel, {ctx.author.mention}!")
+      await ctx.reply(author_not_in_voice_channel)
 @client.command()
 async def joke(ctx):
   joke = pyjokes.get_joke()
@@ -81,7 +84,7 @@ async def join(ctx):
       await ctx.send(f"Joined **{channel}**")
 
     else:
-      await ctx.send(f"You must first join a voice channel, {ctx.author.mention}!")
+      await ctx.reply(author_not_in_voice_channel)
 
 @client.command()
 async def leave(ctx):
@@ -90,12 +93,12 @@ async def leave(ctx):
       await ctx.send("I have left the voice channel")
 
     else:
-      await ctx.send(f"I am not in a voice channel, {ctx.author.mention}")
+      await ctx.reply(bot_not_in_voice_channel)
 
 @client.command()
 async def pause(ctx):
   if not ctx.voice_client:
-    await ctx.send(f"I am not in a voice channel, {ctx.author.mention}! Having trouble? Use the **!helpme** command. ")
+    await ctx.reply(bot_not_in_voice_channel)
 
   if ctx.author.voice:
     voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
@@ -108,12 +111,12 @@ async def pause(ctx):
       await ctx.send("There is no song being played")
 
   else:
-    await ctx.send(f"You're not in a voice channel, {ctx.author.mention}!")
+    await ctx.reply(author_not_in_voice_channel)
 
 @client.command(aliases=['continue', 'res'])
 async def play(ctx):
   if not ctx.voice_client:
-    await ctx.send(f"I am not in a voice channel, {ctx.author.mention}! Having trouble? Use the **!helpme** command. ")
+    await ctx.reply(bot_not_in_voice_channel)
 
   if ctx.author.voice:
     voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
@@ -125,20 +128,24 @@ async def play(ctx):
     else: 
       await ctx.send("There is no currently playing audio")
   else:
-    await ctx.send(f"You're not in a voice channel, {ctx.author.mention}!")
+    await ctx.reply(author_not_in_voice_channel)
 
 @client.command(aliases=['next'])
 async def skip(ctx):
   if not ctx.voice_client:
-    await ctx.send(f"I am not in a voice channel, {ctx.author.mention}! Having trouble? Use the **!helpme** command. ")
+    await ctx.reply(bot_not_in_voice_channel)
 
   if ctx.author.voice:
     voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
-    voice.stop()
-    print(f"def skip {titles_on_song_command}")
-    await ctx.send(f"Now playing **{titles[0]}**")
+    if voice.is_playing() or voice.is_paused():
+      voice.stop()
+      print(f"def skip {titles_on_song_command}")
+      await ctx.send(f"Now playing **{titles[0]}**")
+      print(f'def skip after await {titles_on_song_command}')
+    else:
+      await ctx.reply(f"Can't skip because no song is playing")
   else:
-    await ctx.send(f"You're not in a voice channel, {ctx.author.mention}!")
+    await ctx.reply(author_not_in_voice_channel)
     
 @client.command()
 async def song(ctx, *args):
@@ -155,7 +162,7 @@ async def song(ctx, *args):
     await ctx.send(f"Joined **{channel}**")
     
   if not ctx.author.voice:
-    await ctx.send(f"You're not in a voice channel, {ctx.author.mention}!")
+    await ctx.reply(author_not_in_voice_channel)
 
   else:
     # time.sleep(0.5)
@@ -184,7 +191,7 @@ async def song(ctx, *args):
       await ctx.send(f"Now playing: **{newsong.title}**\n{final_link}")
       
     else:
-      await ctx.send('There is a song currently playing.\nTo __add something__ to your queue, use the **!q** command.\nTo __skip to the next song__ in queue, use the **!skip** command')
+      await ctx.send('There is a song currently playing.\nTo __add something__ to the queue, use the **!q** command.\nTo __skip to the next song__ in queue, use the **!skip** command')
    
 @client.command(aliases=['queue','add'])
 async def q(ctx, *args):
@@ -196,57 +203,97 @@ async def q(ctx, *args):
   q_name += "audio"
 
   if not ctx.voice_client:
-    await ctx.send(f"I am not in a voice channel, {ctx.author.mention}! Having trouble? Use the **!helpme** command. ")
+    await ctx.send(bot_not_in_voice_channel)
   else:
     if ctx.author.voice:
-      voice = ctx.guild.voice_client
-      query_queue = urllib.parse.urlencode({"search_query" : q_name.rstrip()})
-      html_queue = urllib.request.urlopen("https://www.youtube.com/results?"+query_queue)
-      results_queue = re.findall(r'url\"\:\"\/watch\?v\=(.*?(?=\"))', html_queue.read().decode())
+      voice_status = discord.utils.get(client.voice_clients, guild=ctx.guild)
 
-      i = 0
-      next_in_queue = pafy.new(results_queue[i]) 
-      if next_in_queue.length >= 600:
-        i += 1
-      next_in_queue = pafy.new(results_queue[i]) 
-      audio_queue = next_in_queue.getbestaudio() 
-      queued_song = FFmpegPCMAudio(audio_queue.url, **FFMPEG_OPTIONS)
+      if len(titles) < 20:
+        voice = ctx.guild.voice_client
+        query_queue = urllib.parse.urlencode({"search_query" : q_name.rstrip()})
+        html_queue = urllib.request.urlopen("https://www.youtube.com/results?"+query_queue)
+        results_queue = re.findall(r'url\"\:\"\/watch\?v\=(.*?(?=\"))', html_queue.read().decode())
 
-      guild_id = ctx.message.guild.id
+        i = 0
+        next_in_queue = pafy.new(results_queue[i]) 
+        if next_in_queue.length >= 600:
+          i += 1
+        next_in_queue = pafy.new(results_queue[i]) 
+        audio_queue = next_in_queue.getbestaudio() 
+        queued_song = FFmpegPCMAudio(audio_queue.url, **FFMPEG_OPTIONS)
 
-      if guild_id in queues:
-        queues[guild_id].append(queued_song)
-        titles.append(next_in_queue.title)
-        titles_on_song_command.append(next_in_queue.title)
-        print(f"if guild in queues {titles_on_song_command}")
-      
+        guild_id = ctx.message.guild.id
+
+        if guild_id in queues:
+          queues[guild_id].append(queued_song)
+          titles.append(next_in_queue.title)
+          titles_on_song_command.append(next_in_queue.title)
+          print(f"if guild in queues {titles_on_song_command}")
+        
+        else:
+          queues[guild_id] = [queued_song]
+          titles.append(next_in_queue.title)
+          titles_on_song_command.append(next_in_queue.title)
+          print(f"else {titles_on_song_command}")
+        
+        await ctx.send(f"Added to queue: **{next_in_queue.title}**\nhttp://www.youtube.com/watch?v={results_queue[i]}")
+        await ctx.send(f"**Queued songs**: {list(titles[i] for i in range(0,len(titles)))}")
+        if not voice_status.is_playing() and len(titles_on_song_command) == 1:
+          source = queues[ctx.message.guild.id].pop(0)
+          voice = ctx.guild.voice_client
+          voice.play(source, after=lambda x=None: check_queue(ctx, ctx.message.guild.id))
+          titles.pop(0)
+
+        else:
+          pass
       else:
-        queues[guild_id] = [queued_song]
-        titles.append(next_in_queue.title)
-        titles_on_song_command.append(next_in_queue.title)
-        print(f"else {titles_on_song_command}")
-      
-      await ctx.send(f"Added to queue: **{next_in_queue.title}**\nhttp://www.youtube.com/watch?v={results_queue[i]}")
-      await ctx.send(f"**Queued songs**: {list(titles[i] for i in range(0,len(titles)))}")
+        await ctx.send(f"Reached maximum queue limit")
     else:
-      await ctx.send(f"You're not in a voice channel, {ctx.author.mention}!")
+      await ctx.reply(author_not_in_voice_channel)
 
 @client.command(aliases=['end'])
 async def stop(ctx):
   if not ctx.voice_client:
-    await ctx.send(f"I am not in a voice channel, {ctx.author.mention}! Having trouble? Use the **!helpme** command. ")
+    await ctx.reply(bot_not_in_voice_channel)
 
   if ctx.author.voice:
       voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
-      # titles_on_song_command.pop(0)
-      queues.clear()
-      titles.clear()
-      titles_on_song_command.clear()
-      voice.stop()
-     
+
+      if queues[ctx.message.guild.id] != [] and titles != [] and voice.is_playing():
+        # titles_on_song_command.pop(0)
+        queues.clear()
+        titles.clear()
+        titles_on_song_command.clear()
+        voice.stop()
+        await ctx.send('Current song stopped and all queues removed')
+        await ctx.send(f"**Queued songs**: {list(titles[i] for i in range(0,len(titles)))}")
+
+      else:
+        await ctx.send("Can't use command because no song is playing")
 
   else:
-    await ctx.send(f"You're not in a voice channel, {ctx.author.mention}!")
+    await ctx.reply(author_not_in_voice_channel)
+
+@client.command()
+async def clear(ctx):
+  if not ctx.voice_client:
+    await ctx.reply(bot_not_in_voice_channel)
+
+  if ctx.author.voice:
+      voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
+
+      if queues[ctx.message.guild.id] != [] and titles != []:
+        # titles_on_song_command.pop(0)
+        queues.clear()
+        titles.clear()
+        titles_on_song_command.clear()
+        await ctx.send('All queues removed')
+
+      else:
+        await ctx.send("Can't use command because there are no more songs in queue")
+
+  else:
+    await ctx.reply(author_not_in_voice_channel)
 
 @client.command(aliases=['remove', 'rem'])
 async def rq(ctx):
@@ -256,7 +303,7 @@ async def rq(ctx):
         await ctx.send(f"Type the position of the song to remove (0 to cancel): {list(f'**{i+1, titles[i]}**' for i in range(0, len(titles)))}")
         
         def check(msg):
-            return msg.author == ctx.author and msg.channel == ctx.channel and int(msg.content) in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+            return msg.author == ctx.author and msg.channel == ctx.channel and int(msg.content) in [i for i in range(0,20)]
 
         msg = await client.wait_for("message", check=check)
         if int(msg.content) != 0:
@@ -268,7 +315,7 @@ async def rq(ctx):
           print(f"def rq {titles_on_song_command}")
           await ctx.send(f"**Queued songs**: {list(titles[i] for i in range(0,len(titles)))}")
         else:
-          pass
+          await ctx.send(f"No queue removed")
 
       except IndexError:
         queues[ctx.message.guild.id].pop(len(queues[int(msg.content)]))
@@ -279,15 +326,18 @@ async def rq(ctx):
       await ctx.send("No more queues to remove")
 
   else:
-    await ctx.send(f"You're not in a voice channel, {ctx.author.mention}! Having trouble? Use the **!helpme** command. ")
+    await ctx.reply(author_not_in_voice_channel)
 
 
 @client.command(aliases=['list', 'sq', 'vq', 'view'])
 async def qs(ctx):
-  if ctx.author.voice:
-    await ctx.send(f"**Queued songs**: {list(titles[i] for i in range(0,len(titles)))}")
+  if ctx.voice_client:
+    if ctx.author.voice:
+      await ctx.send(f"**Queued songs**: {list(titles[i] for i in range(0,len(titles)))}")
+    else:
+      await ctx.reply(author_not_in_voice_channel)
   else:
-    await ctx.send(f"You're not in a voice channel, {ctx.author.mention}! Having trouble? Use the **!helpme** command. ")
+    await ctx.reply(bot_not_in_voice_channel)
 
 @client.command()
 async def previous(ctx): #TODO goes back to previous song
@@ -299,7 +349,7 @@ async def lyrics(ctx):
     if ctx.author.voice:
       voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
 
-      if voice.is_playing():
+      if voice.is_playing() or voice.is_paused():
         try:
           extract_lyrics = SongLyrics(os.environ.get("GCS_API_KEY"), os.environ.get("GCS_ENGINE_ID"))
           lyrics = extract_lyrics.get_lyrics(titles_on_song_command[0])
@@ -315,7 +365,6 @@ async def lyrics(ctx):
               lyr3 = lyr2[0:len(lyr2)//2]
               lyr4 = lyr2[len(lyr2)//2:]
               await ctx.send(f"**{titles_on_song_command[0]}**\n{lyr1}")
-              await ctx.send(lyr2)
               await ctx.send(lyr3)
               await ctx.send(lyr4)
 
@@ -329,9 +378,9 @@ async def lyrics(ctx):
         await ctx.send("There is no song playing")
 
     else:
-      await ctx.send(f"You're not in a voice channel, {ctx.author.mention}! Having trouble? Use the **!helpme** command.")
+      await ctx.reply(author_not_in_voice_channel)
   else:
-    await ctx.send(f"I am not in a voice channel, {ctx.author.mention}! Having trouble? Use the **!helpme** command.")
+    await ctx.reply(bot_not_in_voice_channel)
 
 @client.event
 async def on_message(message):
@@ -352,6 +401,6 @@ async def info_error(ctx, error):
 @client.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound):
-        await ctx.send('Invalid command. Having trouble? Use the **!helpme** command.')
+        await ctx.reply('Invalid command. Having trouble? Use the **!helpme** command.')
     
 client.run(os.environ.get('DISCORD'))

@@ -7,14 +7,14 @@
 
 **__These only work when we are both in a voice channel:__**
 **!q (song name)** - Add a song to the queue 
-**!rq** - Lets you remove a song from the queue 
-**!qs** - View queued songs
+**!remove** - Lets you remove a song from the queue 
+**!view** - View queued songs
 **!stop** - Stops current song and clears queue
 **!pause** - Pause the current song
 **!play** - Resume the paused song
-**!skip** - Skip song to the next one in your queue
-**!now** - Shows the title of the current playing song
-**!lyrics** - Shows lyrics of current song
+**!skip** - Skip to the next song in your queue
+**!now** - Shows the title of the current song playing
+**!lyrics** - Shows lyrics of current song playing
 
 
 
