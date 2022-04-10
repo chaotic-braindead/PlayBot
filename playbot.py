@@ -300,27 +300,30 @@ async def lyrics(ctx):
       voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
 
       if voice.is_playing():
-        extract_lyrics = SongLyrics(os.environ.get("GCS_API_KEY"), os.environ.get("GCS_ENGINE_ID"))
-        lyrics = extract_lyrics.get_lyrics(titles_on_song_command[0])
-        lyr = lyrics['lyrics'].replace('\\n', '\n')
+        try:
+          extract_lyrics = SongLyrics(os.environ.get("GCS_API_KEY"), os.environ.get("GCS_ENGINE_ID"))
+          lyrics = extract_lyrics.get_lyrics(titles_on_song_command[0])
+          lyr = lyrics['lyrics'].replace('\\n', '\n')
 
-        if len(lyr)+len(titles_on_song_command[0]) <= 2000:
-          await ctx.send(f"**{titles_on_song_command[0]}**\n{lyr}")
-        else:
-          lyr1 = lyr[0:len(lyr)//2]
-          lyr2 = lyr[len(lyr)//2:]
-
-          if len(lyr2) > 2000:
-            lyr3 = lyr2[0:len(lyr2)//2]
-            lyr4 = lyr2[len(lyr2)//2:]
-            await ctx.send(f"**{titles_on_song_command[0]}**\n{lyr1}")
-            await ctx.send(lyr2)
-            await ctx.send(lyr3)
-            await ctx.send(lyr4)
-
+          if len(lyr)+len(titles_on_song_command[0]) <= 2000:
+            await ctx.send(f"**{titles_on_song_command[0]}**\n{lyr}")
           else:
-            await ctx.send(f"**{titles_on_song_command[0]}**\n{lyr1}")
-            await ctx.send(lyr2)
+            lyr1 = lyr[0:len(lyr)//2]
+            lyr2 = lyr[len(lyr)//2:]
+
+            if len(lyr2) > 2000:
+              lyr3 = lyr2[0:len(lyr2)//2]
+              lyr4 = lyr2[len(lyr2)//2:]
+              await ctx.send(f"**{titles_on_song_command[0]}**\n{lyr1}")
+              await ctx.send(lyr2)
+              await ctx.send(lyr3)
+              await ctx.send(lyr4)
+
+            else:
+              await ctx.send(f"**{titles_on_song_command[0]}**\n{lyr1}")
+              await ctx.send(lyr2)
+        except commands.errors.CommandInvokeError:
+          await ctx.send('Lyrics currently unavailable.')
           
       else:
         await ctx.send("There is no song playing")
@@ -341,5 +344,14 @@ async def on_message(message):
 
     await client.process_commands(message)
 
+@lyrics.error
+async def info_error(ctx, error): # This might need to be (error, ctx), I'm not sure
+    if isinstance(error, commands.CommandInvokeError):
+        await ctx.send('Lyrics are currently unavailable')
+
+@client.event
+async def on_command_error(ctx, error): # This might need to be (error, ctx), I'm not sure
+    if isinstance(error, commands.CommandNotFound):
+        await ctx.send('Invalid command. Having trouble? Use the **!helpme** command.')
     
 client.run(os.environ.get('DISCORD'))
