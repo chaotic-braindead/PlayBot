@@ -181,7 +181,7 @@ async def song(ctx, *args):
       voice = ctx.guild.voice_client
       play_check = discord.utils.get(client.voice_clients, guild=ctx.guild)
       
-      if not play_check.is_playing() and 'https://www.youtube.com/' not in play_name:
+      if not play_check.is_playing() and 'https://www.youtube.com/' or 'http://www.youtube.com/' not in play_name:
         query_stringyt = urllib.parse.urlencode({"search_query" : play_name + 'audio'})
         html_contentyt = urllib.request.urlopen("https://www.youtube.com/results?"+query_stringyt)
         search_resultsyt = re.findall(r'url\"\:\"\/watch\?v\=(.*?(?=\"))', html_contentyt.read().decode())
@@ -205,7 +205,7 @@ async def song(ctx, *args):
 
         
 
-      elif not play_check.is_playing() and 'https://www.youtube.com/' in play_name:
+      elif not play_check.is_playing() and 'https://www.youtube.com/' or 'http://www.youtube.com/' in play_name:
         yt_link = pafy.new(play_name) 
         audio = yt_link.getbestaudio() 
         yt_link_play = FFmpegPCMAudio(audio.url, **FFMPEG_OPTIONS)
