@@ -16,6 +16,8 @@
 **!now** - Shows the title of the current song playing
 **!lyrics** - Shows lyrics of current song playing
 
+**Note**: You can only use the **!song** command if the bot is not in a voice channel.
+If use the **!join** command, you must use the **!q** command to play a song.
 
 
 
