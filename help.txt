@@ -6,7 +6,7 @@
 **!summary (topic)** - Lets me tell you something about any topic 
 
 **__These only work when we are both in a voice channel:__**
-**!q (song name)** - Add a song to the queue 
+**!q (song name or YouTube link)** - Add a song to the queue 
 **!remove** - Lets you remove a song from the queue 
 **!view** - View queued songs
 **!stop** - Stops current song and clears queue
@@ -15,9 +15,6 @@
 **!skip** - Skip to the next song in your queue
 **!now** - Shows the title of the current song playing
 **!lyrics** - Shows lyrics of current song playing
-
-**Note**: You can only use the **!song** command if the bot is not in a voice channel.
-If use the **!join** command, you must use the **!q** command to play a song.
 
 
 
