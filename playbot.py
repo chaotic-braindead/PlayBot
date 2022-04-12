@@ -68,11 +68,11 @@ def check_queue(ctx, id):
       titles_on_song_command.pop(0)
       source = queues[id].pop(0)
       channel = client.get_channel(961916690508161044)
-      client.loop.create_task(channel.send(f"Song queue finished. To add a new song, use the **!q** command"))
+      client.loop.create_task(channel.send(f"Song queue finished."))
 
     except (IndexError, KeyError):
       channel = client.get_channel(961916690508161044)
-      client.loop.create_task(channel.send(f"Song queue finished. To add a new song, use the **!q** command"))
+      client.loop.create_task(channel.send(f"Song queue finished."))
 
 @client.event
 async def on_ready():
@@ -100,7 +100,7 @@ async def joke(ctx):
   joke = pyjokes.get_joke()
   await ctx.send(joke)
 
-@client.command('Lets me tell you something about any topic (sometimes inaccurate!)')
+@client.command(help='Lets me tell you something about any topic (sometimes inaccurate!)')
 async def summary(ctx, *args):
   topic = ""
 
@@ -117,12 +117,20 @@ async def helpme(ctx):
 
 @client.command(aliases=['start'], help='Lets me join your current voice channel')
 async def join(ctx):
-    if ctx.author.voice:
+     user = ctx.message.author
+     vc = user.voice.channel
+
+     if ctx.author.voice:
       channel = ctx.message.author.voice.channel
       voice = await channel.connect()
       await ctx.send(f"Joined **{channel}**")
-    else:
+
+     else:
       await ctx.reply(author_not_in_voice_channel)
+
+    #   await ctx.send(f"Joined **{channel}**")
+    # else:
+    #   await ctx.reply(author_not_in_voice_channel)
 
 @client.command(help='Lets me leave the voice channel')
 async def leave(ctx):
@@ -188,15 +196,16 @@ async def song(ctx, *args):
   for arg in args:
     play_name += f"{arg} "
   
-  if not ctx.voice_client or ctx.author.voice:
-    channel = ctx.message.author.voice.channel
-    titles_on_song_command.clear()
-    titles.clear()
-    voice_connect = await channel.connect()
-    await ctx.send(f"Joined **{channel}**")
-    
-  if not ctx.author.voice:
-    await ctx.reply(author_not_in_voice_channel)
+  if not ctx.voice_client:
+    if ctx.author.voice:
+      channel = ctx.message.author.voice.channel
+      titles_on_song_command.clear()
+      titles.clear()
+      voice_connect = await channel.connect()
+      await ctx.send(f"Joined **{channel}**")  
+
+    else:
+      await ctx.reply(author_not_in_voice_channel)
 
   voice = ctx.guild.voice_client
   play_check = discord.utils.get(client.voice_clients, guild=ctx.guild)
@@ -235,6 +244,9 @@ async def song(ctx, *args):
       status = '!song'
       add_to_now_playing(yt_link.title, status)
       play_song(ctx, yt_link_play, yt_link.title, play_name)
+
+  else:
+    await ctx.reply("There is a song currently playing. To add a song to a queue, use the **!q** command. To skip to the next queued song, use the **!skip** command.")
     
 @client.command(aliases=['queue','add'], help='Adds a song to the queue ')
 async def q(ctx, *args):
@@ -417,29 +429,27 @@ async def lyrics(ctx):
       voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
 
       if voice.is_playing() or voice.is_paused():
-        try:
-          extract_lyrics = SongLyrics(os.environ.get("GCS_API_KEY"), os.environ.get("GCS_ENGINE_ID"))
-          lyrics = extract_lyrics.get_lyrics(titles_on_song_command[0])
-          lyr = lyrics['lyrics'].replace('\\n', '\n')
+        
+        extract_lyrics = SongLyrics(os.environ.get("GCS_API_KEY"), os.environ.get("GCS_ENGINE_ID"))
+        lyrics = extract_lyrics.get_lyrics(titles_on_song_command[0])
+        lyr = lyrics['lyrics'].replace('\\n', '\n')
 
-          if len(lyr)+len(titles_on_song_command[0]) <= 2000:
-            await ctx.send(f"**{titles_on_song_command[0]}**\n{lyr}")
+        if len(lyr)+len(titles_on_song_command[0]) <= 2000:
+          await ctx.send(f"**{titles_on_song_command[0]}**\n{lyr}")
+        else:
+          lyr1 = lyr[0:len(lyr)//2]
+          lyr2 = lyr[len(lyr)//2:]
+
+          if len(lyr2) > 2000:
+            lyr3 = lyr2[0:len(lyr2)//2]
+            lyr4 = lyr2[len(lyr2)//2:]
+            await ctx.send(f"**{titles_on_song_command[0]}**\n{lyr1}")
+            await ctx.send(lyr3)
+            await ctx.send(lyr4)
+
           else:
-            lyr1 = lyr[0:len(lyr)//2]
-            lyr2 = lyr[len(lyr)//2:]
-
-            if len(lyr2) > 2000:
-              lyr3 = lyr2[0:len(lyr2)//2]
-              lyr4 = lyr2[len(lyr2)//2:]
-              await ctx.send(f"**{titles_on_song_command[0]}**\n{lyr1}")
-              await ctx.send(lyr3)
-              await ctx.send(lyr4)
-
-            else:
-              await ctx.send(f"**{titles_on_song_command[0]}**\n{lyr1}")
-              await ctx.send(lyr2)
-        except commands.errors.CommandInvokeError:
-          await ctx.send('Lyrics currently unavailable.')
+            await ctx.send(f"**{titles_on_song_command[0]}**\n{lyr1}")
+            await ctx.send(lyr2)
           
       else:
         await ctx.send("There is no song playing")
