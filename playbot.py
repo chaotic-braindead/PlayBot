@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from discord import FFmpegPCMAudio
+from discord import FFmpegOpusAudio
 import os
 import urllib.request
 import urllib.parse
@@ -12,7 +12,6 @@ import wikipedia
 import urllib
 from lyrics_extractor import SongLyrics
 
-FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5','options': '-vn'}
 client = commands.Bot(command_prefix='!')
 queues = {}
 titles = []
@@ -253,7 +252,7 @@ async def song(ctx, *args):
 
       newsong = pafy.new(search_resultsyt[i])
       audio = newsong.getbestaudio() 
-      newsource = FFmpegPCMAudio(audio.url, **FFMPEG_OPTIONS)
+      newsource = FFmpegOpusAudio(audio.url)
       titles_on_song_command.insert(0, newsong.title)
 
       time.sleep(1.25)
@@ -267,7 +266,7 @@ async def song(ctx, *args):
     elif 'https://www.youtube.com/' in play_name:
       yt_link = pafy.new(play_name) 
       audio = yt_link.getbestaudio() 
-      yt_link_play = FFmpegPCMAudio(audio.url, **FFMPEG_OPTIONS)
+      yt_link_play = FFmpegOpusAudio(audio.url)
       titles_on_song_command.insert(0, yt_link.title)
 
       time.sleep(1.25)
@@ -303,7 +302,7 @@ async def q(ctx, *args):
 
           next_in_queue = pafy.new(results_queue[0]) 
           audio_queue = next_in_queue.getbestaudio() 
-          queued_song = FFmpegPCMAudio(audio_queue.url, **FFMPEG_OPTIONS)
+          queued_song = FFmpegOpusAudio(audio_queue.url)
           link = f'https://www.youtube.com/watch?v={results_queue[0]}'
           status = '!q'
           
@@ -329,7 +328,7 @@ async def q(ctx, *args):
         elif 'https://www.youtube.com/' in q_name:
           yt_new_queue = pafy.new(q_name) 
           yt_audio_queue = yt_new_queue.getbestaudio() 
-          yt_queued_song = FFmpegPCMAudio(yt_audio_queue.url, **FFMPEG_OPTIONS)
+          yt_queued_song = FFmpegOpusAudio(yt_audio_queue.url)
           
           status = '!q'
           
