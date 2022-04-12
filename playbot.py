@@ -1,5 +1,3 @@
-from ast import alias
-from calendar import c
 import discord
 from discord.ext import commands
 from discord import FFmpegPCMAudio
@@ -42,7 +40,9 @@ def add_to_now_playing(song_title, status):
 def play_song(ctx, song_source, song_title, final_link):
     voice = ctx.guild.voice_client
     channel = client.get_channel(961916690508161044)
-    client.loop.create_task(channel.send(f"Now playing: **{song_title}\n{final_link}**"))
+    embed = discord.Embed(description = f"Now playing: **{song_title}\n{final_link}**", color = discord.Colour.red())
+    client.loop.create_task(channel.send(embed=embed))
+    # client.loop.create_task(channel.send(f"Now playing: **{song_title}\n{final_link}**"))
     voice.play(song_source, after=lambda x=None: check_queue(ctx, ctx.message.guild.id))
 
 def check_queue(ctx, id):
@@ -59,7 +59,8 @@ def check_queue(ctx, id):
       if len(titles) != 0:
         titles.pop(0)
         titles_on_song_command.pop(0)
-        client.loop.create_task(channel.send(f"Now playing: **{titles_on_song_command[0]}**"))
+        embed = discord.Embed(description = f"Now playing: **{titles_on_song_command[0]}**", color = discord.Colour.red())
+        client.loop.create_task(channel.send(embed=embed))
       else:
         pass
 
@@ -68,11 +69,13 @@ def check_queue(ctx, id):
       titles_on_song_command.pop(0)
       source = queues[id].pop(0)
       channel = client.get_channel(961916690508161044)
-      client.loop.create_task(channel.send(f"Song queue finished."))
+      embed2 = discord.Embed(description = f"Song queue finished.", color = discord.Colour.red())
+      client.loop.create_task(channel.send(embed=embed2))
 
     except (IndexError, KeyError):
       channel = client.get_channel(961916690508161044)
-      client.loop.create_task(channel.send(f"Song queue finished."))
+      embed3 = discord.Embed(description = f"Song queue finished.", color = discord.Colour.red())
+      client.loop.create_task(channel.send(embed=embed3))
 
 @client.event
 async def on_ready():
@@ -81,24 +84,28 @@ async def on_ready():
 
 @client.command(help='Say hello to PlayBot!')
 async def hello(ctx):
-    await ctx.reply(f"Hello, {ctx.message.author.mention}! If you need help with my commands, just type **!helpme**", mention_author=False)
+    embed = discord.Embed(description =f"Hello, {ctx.message.author.mention}! If you need help with my commands, just type **!helpme**", color = discord.Colour.red())
+    await ctx.reply(embed=embed)
 
 @client.command(help='Shows the title of the current song playing')
 async def now(ctx):
   voice = discord.utils.get(ctx.bot.voice_clients, guild=ctx.guild)
   if ctx.author.voice:
     if voice.is_playing() or voice.is_paused():
-      await ctx.send(f"Now playing: **{titles_on_song_command[0]}**")
+      embed = discord.Embed(description =f"Now playing: **{titles_on_song_command[0]}**", color = discord.Colour.red())
+      await ctx.send(embed=embed)
     else:
-      await ctx.send(f"No song is playing")
-
+      embed2 = discord.Embed(description =f"No song is playing", color = discord.Colour.red())
+      await ctx.send(embed=embed2)
   else:
-      await ctx.reply(author_not_in_voice_channel)
+      embed3 = discord.Embed(description =author_not_in_voice_channel, color = discord.Colour.red())
+      await ctx.reply(embed=embed3)
 
 @client.command(help='Lets me tell you programming jokes')
 async def joke(ctx):
   joke = pyjokes.get_joke()
-  await ctx.send(joke)
+  embed = discord.Embed(description =joke, color = discord.Colour.red())
+  await ctx.send(embed=embed)
 
 @client.command(help='Lets me tell you something about any topic (sometimes inaccurate!)')
 async def summary(ctx, *args):
@@ -108,12 +115,17 @@ async def summary(ctx, *args):
     topic += arg 
 
   info = wikipedia.summary(topic, auto_suggest=False, sentences=2)
-  await ctx.send(info)
+  img = wikipedia.page(topic)
+  url = img.images[0]
+  embed = discord.Embed(description =info, color = discord.Colour.red())
+  embed.set_thumbnail(url=url)
+  await ctx.send(embed=embed)
 
 @client.command(help='Another help function')
 async def helpme(ctx):
   with open(r'C:\Users\raf\Desktop\Github\PlayBot\help.txt') as f:
-    await ctx.send(f.read())
+    embed = discord.Embed(title = '__List of commands__', description = f.read(), color = discord.Colour.red())
+    await ctx.send(embed=embed)
 
 @client.command(aliases=['start'], help='Lets me join your current voice channel')
 async def join(ctx):
@@ -123,10 +135,12 @@ async def join(ctx):
      if ctx.author.voice:
       channel = ctx.message.author.voice.channel
       voice = await channel.connect()
-      await ctx.send(f"Joined **{channel}**")
+      embed = discord.Embed(description = f'Joined **{channel}**', color = discord.Colour.red())
+      await ctx.send(embed=embed)
 
      else:
-      await ctx.reply(author_not_in_voice_channel)
+      embed2 = discord.Embed(description = author_not_in_voice_channel, color = discord.Colour.red())
+      await ctx.send(embed=embed2) 
 
     #   await ctx.send(f"Joined **{channel}**")
     # else:
@@ -135,59 +149,73 @@ async def join(ctx):
 @client.command(help='Lets me leave the voice channel')
 async def leave(ctx):
     if ctx.voice_client:
+      channel = ctx.message.author.voice.channel
       await ctx.guild.voice_client.disconnect()
-      await ctx.send("I have left the voice channel")
+      embed = discord.Embed(description = f'Left **{channel}**', color = discord.Colour.red())
+      await ctx.send(embed=embed)
     else:
-      await ctx.reply(bot_not_in_voice_channel)
+      failed = discord.Embed(description =bot_not_in_voice_channel, color = discord.Colour.red())
+      await ctx.send(embed=failed)
 
 @client.command(help='Pauses the current song')
 async def pause(ctx):
   if not ctx.voice_client:
-    await ctx.reply(bot_not_in_voice_channel)
+    not_in_voice =  discord.Embed(description =bot_not_in_voice_channel, color = discord.Colour.red())
+    await ctx.reply(embed=not_in_voice)
 
   if ctx.author.voice:
     voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
 
     if voice.is_playing():
       voice.pause()
-      await ctx.send("Song paused")
+      embed = discord.Embed(description = f'Paused **{titles_on_song_command[0]}**', color = discord.Colour.red())
+      await ctx.send(embed=embed)
     else: 
-      await ctx.send("There is no song being played")
+      failed = discord.Embed(description ='There is no song being played', color = discord.Colour.red())
+      await ctx.send(embed=failed)
 
   else:
-    await ctx.reply(author_not_in_voice_channel)
+    not_in_voice =  discord.Embed(description =author_not_in_voice_channel, color = discord.Colour.red())
+    await ctx.reply(embed=not_in_voice)
 
 @client.command(aliases=['continue', 'res'], help='Resumes the paused song')
 async def play(ctx):
   if not ctx.voice_client:
-    await ctx.reply(bot_not_in_voice_channel)
+    not_in_voice =  discord.Embed(description =bot_not_in_voice_channel, color = discord.Colour.red())
+    await ctx.reply(embed=embed)
 
   if ctx.author.voice:
     voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
 
     if voice.is_paused():
       voice.resume()
-      await ctx.send("Song resumed")
+      embed =  discord.Embed(description =f'Resumed **{titles_on_song_command[0]}**', color = discord.Colour.red())
+      await ctx.send(embed=embed)
     else: 
-      await ctx.send("There is no currently playing audio")
+      nonplay =  discord.Embed(description ='There is no audio currently playing', color = discord.Colour.red())
+      await ctx.send(embed=nonplay)
 
   else:
-    await ctx.reply(author_not_in_voice_channel)
+    failed =  discord.Embed(description =author_not_in_voice_channel, color = discord.Colour.red())
+    await ctx.reply(embed=failed)
 
 @client.command(aliases=['next'], help='Skip to the next song in your queue')
 async def skip(ctx):
   if not ctx.voice_client:
-    await ctx.reply(bot_not_in_voice_channel)
+    not_in_voice =  discord.Embed(description =bot_not_in_voice_channel, color = discord.Colour.red())
+    await ctx.reply(embed=not_in_voice)
 
   if ctx.author.voice:
     voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
     if voice.is_playing() or voice.is_paused():
       voice.stop()
     else:
-      await ctx.reply(f"Can't skip because no song is playing")
+      not_in_voice =  discord.Embed(description ="Can't skip because no song is playing", color = discord.Colour.red())
+      await ctx.reply(embed=not_in_voice)
 
   else:
-    await ctx.reply(author_not_in_voice_channel)
+    not_in_voice =  discord.Embed(description =author_not_in_voice_channel, color = discord.Colour.red())
+    await ctx.reply(embed=not_in_voice)
     
 @client.command(help='Lets me play a song in your current voice channel')
 async def song(ctx, *args):
@@ -202,10 +230,12 @@ async def song(ctx, *args):
       titles_on_song_command.clear()
       titles.clear()
       voice_connect = await channel.connect()
-      await ctx.send(f"Joined **{channel}**")  
+      embed = discord.Embed(description = f'Joined **{channel}**', color = discord.Colour.red())
+      await ctx.send(embed=embed)
 
     else:
-      await ctx.reply(author_not_in_voice_channel)
+      embed2 = discord.Embed(description = author_not_in_voice_channel, color = discord.Colour.red())
+      await ctx.send(embed=embed2)
 
   voice = ctx.guild.voice_client
   play_check = discord.utils.get(client.voice_clients, guild=ctx.guild)
@@ -243,10 +273,11 @@ async def song(ctx, *args):
       time.sleep(1.25)
       status = '!song'
       add_to_now_playing(yt_link.title, status)
-      play_song(ctx, yt_link_play, yt_link.title, play_name)
+      play_song(ctx, yt_link_play, yt_link.title, "")
 
   else:
-    await ctx.reply("There is a song currently playing. To add a song to a queue, use the **!q** command. To skip to the next queued song, use the **!skip** command.")
+    embed = discord.Embed(description = "There is a song currently playing. To add a song to a queue, use the **!q** command. To skip to the next queued song, use the **!skip** command.", color = discord.Colour.red())
+    await ctx.send(embed=embed)
     
 @client.command(aliases=['queue','add'], help='Adds a song to the queue ')
 async def q(ctx, *args):
@@ -256,7 +287,8 @@ async def q(ctx, *args):
     q_name += f"{arg} "
 
   if not ctx.voice_client:
-    await ctx.send(bot_not_in_voice_channel)
+    embed = discord.Embed(description =bot_not_in_voice_channel, color = discord.Colour.red())
+    await ctx.send(embed=embed)
   else:
     if ctx.author.voice:
       voice_status = discord.utils.get(client.voice_clients, guild=ctx.guild)
@@ -278,18 +310,21 @@ async def q(ctx, *args):
           add_to_queue(ctx, queued_song, next_in_queue.title)
           add_to_now_playing(next_in_queue.title, status)
 
-          if not voice_status.is_playing():
+          if not voice_status.is_playing() and not voice_status.is_paused():
             titles.pop(0)
             play_song(ctx, queued_song, next_in_queue.title, link)
           else:
-            await ctx.send(f"Added to queue: **{next_in_queue.title}**\nhttps://www.youtube.com/watch?v={results_queue[0]}")
+            embed2 = discord.Embed(description = f"Added to queue: **{next_in_queue.title}**\nhttps://www.youtube.com/watch?v={results_queue[0]}", color = discord.Colour.red())
+            await ctx.send(embed=embed2)
             songs = list(f'• {titles[i]}' for i in range(0,len(titles)))
             str = '\n'.join(songs)
             if str != '':
-              await ctx.send(f"**Queued songs**:\n{str} ")
+              embed3 = discord.Embed(title=f"**Queued songs**:",description =str, color = discord.Colour.red())
+              await ctx.send(embed=embed3)
+              
             else:
-              await ctx.send(f"**Queued songs**: None")
-
+              embed4 = discord.Embed(title=f"**Queued songs**:",description = f"**Queued songs**: None", color = discord.Colour.red())
+              await ctx.send(embed=embed4)
           
         elif 'https://www.youtube.com/' in q_name:
           yt_new_queue = pafy.new(q_name) 
@@ -301,29 +336,30 @@ async def q(ctx, *args):
           add_to_queue(ctx, yt_queued_song, yt_new_queue.title)
           add_to_now_playing(yt_new_queue.title, status)
 
-          songs2 = list(f'• {titles[i]}\n' for i in range(0,len(titles)))
+          songs2 = list(f'• {titles[i]}' for i in range(0,len(titles)))
           str2 = '\n'.join(songs2)
           
-          if not voice_status.is_playing():
+          if not voice_status.is_playing() and not voice_status.is_paused():
             titles.pop(0)
             play_song(ctx, yt_queued_song, yt_new_queue.title, "")
 
           else:
-
-            await ctx.send(f"Added to queue: **{yt_new_queue.title}**")
-            await ctx.send(f"**Queued songs**:\n{str2} ")
-
-          
-   
+            embed5 = discord.Embed(title= 'Added to queue:',description = f"**{yt_new_queue.title}**", color = discord.Colour.red())
+            await ctx.send(embed=embed5)
+            embed8 = discord.Embed(title="**Queued songs**:",description=str2, color=discord.Colour.red())
+            await ctx.send(embed=embed8)
       else:
-        await ctx.send(f"Reached maximum queue limit")
+        embed6 = discord.Embed(description = 'Reached maximum queue limit', color = discord.Colour.red())
+        await ctx.send(embed=embed6)
     else:
-      await ctx.reply(author_not_in_voice_channel)
+      embed7 = discord.Embed(description =author_not_in_voice_channel, color = discord.Colour.red())
+      await ctx.reply(embed=embed7)
 
 @client.command(aliases=['end', 'quit'], help='Stops current song and clears queue')
 async def stop(ctx):
   if not ctx.voice_client:
-    await ctx.reply(bot_not_in_voice_channel)
+    embed = discord.Embed(description = bot_not_in_voice_channel, color = discord.Colour.red())
+    await ctx.send(embed=embed)
 
   if ctx.author.voice:
       voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
@@ -334,12 +370,15 @@ async def stop(ctx):
         titles.clear()
         titles_on_song_command.clear()
         voice.stop()
-        await ctx.send('Current song stopped and all queues removed')
+        embed2 = discord.Embed(description = 'Current song stopped and all queues removed', color = discord.Colour.red())
+        await ctx.send(embed=embed2)
       else:
-        await ctx.send("Can't use command because no song is playing")
+        embed3 = discord.Embed(description = "Can't use command because no song is playing", color = discord.Colour.red())
+        await ctx.send(embed=embed3)
 
   else:
-    await ctx.reply(author_not_in_voice_channel)
+    embed4 = discord.Embed(description = author_not_in_voice_channel, color = discord.Colour.red())
+    await ctx.reply(embed=embed4)
 
 # @client.command() TODO revise clear command 
 # async def clear(ctx):
@@ -370,7 +409,8 @@ async def rq(ctx):
       # try:
       songs = list(f'**{i+1}** : {titles[i]}' for i in range(0, len(titles)))
       str = '\n'.join(songs)
-      await ctx.send(f"Type the position of the song to remove (0 to cancel):\n{str}")
+      embed = discord.Embed(title=f"Type the position of the song to remove (0 to cancel):", description=str, color = discord.Colour.red())
+      await ctx.reply(embed=embed)
       
       def check(msg):
           return msg.author == ctx.author and msg.channel == ctx.channel and int(msg.content) in [i for i in range(0,20)]
@@ -378,18 +418,22 @@ async def rq(ctx):
       msg = await client.wait_for("message", check=check)
       if int(msg.content) != 0:
         queues[ctx.message.guild.id].pop(int(msg.content)-1)
-        await ctx.send(f'Removed **{titles[int(msg.content)-1]}** from queue')
+        embed2 = discord.Embed(description = f'Removed **{titles[int(msg.content)-1]}** from queue', color = discord.Colour.red())
+        await ctx.send(embed=embed2)
         titles.pop(int(msg.content)-1)
         titles_on_song_command.pop(int(msg.content))
         songs = list(f'• {titles[i]}' for i in range(0,len(titles)))
-        str = '\n'.join(songs)
-        if str != '':
-          await ctx.send(f"**Queued songs**:\n{str} ")
+        string = '\n'.join(songs)
+        if string != '':
+          embed3 = discord.Embed(title='**Queued songs**:', description=string , color = discord.Colour.red())
+          await ctx.send(embed=embed3)
         else:
-          await ctx.send(f"**Queued songs**: None")
+          embed4 = discord.Embed(title = '**Queued songs:**', description = "None", color = discord.Colour.red())
+          await ctx.send(embed=embed4)
 
       else:
-        await ctx.send(f"No queue removed")
+        embed5 = discord.Embed(title = f"No queue removed", color = discord.Colour.red())
+        await ctx.send(embed=embed5)
 
       # except IndexError:
       #   queues[ctx.message.guild.id].pop(len(queues[int(msg.content)]))
@@ -398,25 +442,31 @@ async def rq(ctx):
       #   await ctx.send(f"**Queued songs**: {list(titles[i] for i in range(0,len(titles)))}")
 
     else:
-      await ctx.send("No more queues to remove")
+      embed6 = discord.Embed(description = "No more queues to remove", color = discord.Colour.red())
+      await ctx.reply(embed=embed6)
 
   else:
-    await ctx.reply(author_not_in_voice_channel)
+    embed7 = discord.Embed(description = author_not_in_voice_channel, color = discord.Colour.red())
+    await ctx.reply(embed=embed7)
 
 @client.command(aliases=['list', 'sq', 'vq', 'view'], help='Views queued songs')
 async def qs(ctx):
   if ctx.voice_client:
     if ctx.author.voice:
       songs = list(f'• {titles[i]}' for i in range(0,len(titles)))
-      str = '\n'.join(songs)
-      if str != '':
-        await ctx.send(f"**Queued songs**:\n{str} ")
+      string = '\n'.join(songs)
+      if string != '':
+        embed = discord.Embed(title= '**Queued songs**:', description =string, color = discord.Colour.red())
+        await ctx.send(embed=embed)
       else:
-        await ctx.send(f"**Queued songs**: None")
+        embed2 = discord.Embed(title=f"**Queued songs**:", description =  "None", color = discord.Colour.red())
+        await ctx.send(embed=embed2)
     else:
-      await ctx.reply(author_not_in_voice_channel)
+      embed3 = discord.Embed(description = author_not_in_voice_channel, color = discord.Colour.red())
+      await ctx.reply(embed=embed3)
   else:
-    await ctx.reply(bot_not_in_voice_channel)
+    embed4 = discord.Embed(description = bot_not_in_voice_channel, color = discord.Colour.red())
+    await ctx.reply(embed=embed4)
 
 @client.command()
 async def previous(ctx): #TODO goes back to previous song
@@ -435,7 +485,8 @@ async def lyrics(ctx):
         lyr = lyrics['lyrics'].replace('\\n', '\n')
 
         if len(lyr)+len(titles_on_song_command[0]) <= 2000:
-          await ctx.send(f"**{titles_on_song_command[0]}**\n{lyr}")
+          embed = discord.Embed(description = f"**{titles_on_song_command[0]}**\n{lyr}", color = discord.Colour.red())
+          await ctx.send(embed=embed)
         else:
           lyr1 = lyr[0:len(lyr)//2]
           lyr2 = lyr[len(lyr)//2:]
@@ -443,22 +494,30 @@ async def lyrics(ctx):
           if len(lyr2) > 2000:
             lyr3 = lyr2[0:len(lyr2)//2]
             lyr4 = lyr2[len(lyr2)//2:]
-            await ctx.send(f"**{titles_on_song_command[0]}**\n{lyr1}")
-            await ctx.send(lyr3)
+            embed2 = discord.Embed(description = f"**{titles_on_song_command[0]}**\n{lyr}", color = discord.Colour.red())
+            embed3 = discord.Embed(description = lyr3, color = discord.Colour.red())
+            embed4 = discord.Embed(description = lyr4, color = discord.Colour.red())
+            await ctx.send(embed=embed2)
+            await ctx.send(embed=embed3)
+            await ctx.send(embed=embed4)
             await ctx.send(lyr4)
 
           else:
-            await ctx.send(f"**{titles_on_song_command[0]}**\n{lyr1}")
-            await ctx.send(lyr2)
+            embed5 = discord.Embed(description = f"**{titles_on_song_command[0]}**\n{lyr1}", color = discord.Colour.red())
+            embed6 = discord.Embed(description = f"**{titles_on_song_command[0]}**\n{lyr1}", color = discord.Colour.red())
+            await ctx.send(embed=embed5)
+            await ctx.send(embed=embed6)
           
       else:
-        await ctx.send("There is no song playing")
+        embed7 = discord.Embed(description = "There is no song playing", color = discord.Colour.red())
+        await ctx.send(embed=embed7)
 
     else:
-      await ctx.reply(author_not_in_voice_channel)
+      embed8 = discord.Embed(description = author_not_in_voice_channel, color = discord.Colour.red())
+      await ctx.reply(embed=embed8)
   else:
-    await ctx.reply(bot_not_in_voice_channel)
-
+    embed9 = discord.Embed(description = bot_not_in_voice_channel, color = discord.Colour.red())
+    await ctx.send(embed=embed9)
 
 @client.command(help='Deletes a specified number of messages in a channel')
 async def cls(ctx, *args:int):
@@ -466,11 +525,7 @@ async def cls(ctx, *args:int):
   for arg in args:
     num += arg
   await ctx.channel.purge(limit=num)
-  #  await ctx.send(f"Type the position of the song to remove (0 to cancel):\n{str}")
-  #  def check(msg):
-  #       return msg.author == ctx.author and msg.channel == ctx.channel and int(msg.content) in [i for i in range(0,20)]
-   
-  #  msg = await client.wait_for("message", check=check)
+
 @client.event
 async def on_message(message):
     msg = message.content.lower()
@@ -478,18 +533,20 @@ async def on_message(message):
 
     for _, key in enumerate(key_words.keys()):
       if key in msg:
-        await message.channel.send(f'{key_words[key]} {mention}!')
-
+        embed = discord.Embed(description = f'{key_words[key]} {mention}!', color = discord.Colour.red())
+        await message.channel.send(embed=embed)
     await client.process_commands(message)
 
 @lyrics.error
 async def info_error(ctx, error):
     if isinstance(error, commands.CommandInvokeError):
-        await ctx.send('Lyrics are currently unavailable')
+        embed = discord.Embed(description = 'Lyrics are currently unavailable', color = discord.Colour.red())
+        await ctx.send(embed=embed)
 
 @client.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound):
-        await ctx.reply('Invalid command. Having trouble? Use the **!helpme** command.')
+        embed = discord.Embed(description = 'Invalid command. Having trouble? Use the **!helpme** command.', color = discord.Colour.red())
+        await ctx.reply(embed=embed)
 
 client.run(os.environ.get('DISCORD'))

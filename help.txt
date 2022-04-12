@@ -1,4 +1,3 @@
-**__List of commands:__**
 **!song (song name or YouTube link)** - Lets me play a song in your current voice channel
 **!join** - Lets me join your current voice channel
 **!leave** - Lets me leave the voice channel
