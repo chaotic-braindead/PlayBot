@@ -300,8 +300,11 @@ async def q(ctx, *args):
           query_queue = urllib.parse.urlencode({"search_query" : q_name+'audio'})
           html_queue = urllib.request.urlopen("https://www.youtube.com/results?"+query_queue)
           results_queue = re.findall(r'url\"\:\"\/watch\?v\=(.*?(?=\"))', html_queue.read().decode())
-
-          next_in_queue = pafy.new(results_queue[0]) 
+          i = 0
+          next_in_queue = pafy.new(results_queue[i])
+          if next_in_queue.length >= 600:
+            i += 1
+          next_in_queue = pafy.new(results_queue[i])
           audio_queue = next_in_queue.getbestaudio() 
           queued_song = FFmpegPCMAudio(audio_queue.url, **FFMPEG_OPTIONS)
           link = f'https://www.youtube.com/watch?v={results_queue[0]}'
