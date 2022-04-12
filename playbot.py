@@ -503,11 +503,10 @@ async def lyrics(ctx):
             await ctx.send(embed=embed2)
             await ctx.send(embed=embed3)
             await ctx.send(embed=embed4)
-            await ctx.send(lyr4)
 
           else:
             embed5 = discord.Embed(description = f"**{titles_on_song_command[0]}**\n{lyr1}", color = discord.Colour.red())
-            embed6 = discord.Embed(description = f"**{titles_on_song_command[0]}**\n{lyr1}", color = discord.Colour.red())
+            embed6 = discord.Embed(description = f"{lyr2}", color = discord.Colour.red())
             await ctx.send(embed=embed5)
             await ctx.send(embed=embed6)
           
