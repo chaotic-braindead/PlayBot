@@ -13,12 +13,12 @@ import urllib
 from lyrics_extractor import SongLyrics
 
 FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5','options': '-vn'}
-client = commands.Bot(command_prefix='!')
+client = commands.Bot(command_prefix=';')
 queues = {}
 titles = []
 titles_on_song_command = []
-author_not_in_voice_channel = "You're not in a voice channel! Having trouble? Use the **!helpme** command."
-bot_not_in_voice_channel = "I am not in a voice channel! Having trouble? Use the **!helpme** command."
+author_not_in_voice_channel = "You're not in a voice channel! Having trouble? Use the `;helpme` command."
+bot_not_in_voice_channel = "I am not in a voice channel! Having trouble? Use the `;helpme` command."
 key_words = {'good bot': 'Why thank you,', 'bad bot': "I'm sorry. I'll do better next time,"}
 
 def add_to_queue(ctx, queued_song, song_title):
@@ -79,12 +79,12 @@ def check_queue(ctx, id):
 
 @client.event
 async def on_ready():
-    await client.change_presence(status=discord.Status.idle, activity=discord.Game('!helpme || @raffy'))
+    await client.change_presence(status=discord.Status.idle, activity=discord.Game('!helpme | @raffy'))
     print(f'Logged in as {client.user}')
 
 @client.command(help='Say hello to PlayBot!')
 async def hello(ctx):
-    embed = discord.Embed(description =f"Hello, {ctx.message.author.mention}! If you need help with my commands, just type **!helpme**", color = discord.Colour.red())
+    embed = discord.Embed(description =f"Hello, {ctx.message.author.mention}! If you need help with my commands, just type `;helpme`", color = discord.Colour.red())
     await ctx.reply(embed=embed)
 
 @client.command(help='Shows the title of the current song playing')
@@ -263,7 +263,6 @@ async def search(ctx, *args):
     newsong = pafy.new(search_resultsyt[int(msg.content)-1])
     audio = newsong.getbestaudio() 
     newsource = FFmpegPCMAudio(audio.url, **FFMPEG_OPTIONS)
-    time.sleep(1.25)
     final_link = f"https://www.youtube.com/watch?v={search_resultsyt[i]}"
     
     if not play_check.is_playing() and not play_check.is_paused():
@@ -314,7 +313,7 @@ async def song(ctx, *args):
   voice = ctx.guild.voice_client
   play_check = discord.utils.get(client.voice_clients, guild=ctx.guild)
   
-  if not play_check.is_playing() and not play_check.is_paused():
+  if not play_check.is_playing():
     if 'https://www.youtube.com/' not in play_name:
       query_stringyt = urllib.parse.urlencode({"search_query" : play_name + 'audio'})
       html_contentyt = urllib.request.urlopen("https://www.youtube.com/results?"+query_stringyt)
@@ -327,7 +326,7 @@ async def song(ctx, *args):
 
       newsong = pafy.new(search_resultsyt[i])
       audio = newsong.getbestaudio() 
-      newsource = FFmpegPCMAudio(audio.url, FFMPEG_OPTIONS)
+      newsource = FFmpegPCMAudio(audio.url, **FFMPEG_OPTIONS)
       titles_on_song_command.insert(0, newsong.title)
 
       time.sleep(1.25)
@@ -350,7 +349,7 @@ async def song(ctx, *args):
       play_song(ctx, yt_link_play, yt_link.title, "")
 
   else:
-    embed = discord.Embed(description = "There is a song currently playing. To add a song to a queue, use the **!q** command. To skip to the next queued song, use the **!skip** command.", color = discord.Colour.red())
+    embed = discord.Embed(description = "There is a song currently playing. To add a song to a queue, use the `;q` command. To skip to the next queued song, use the `;skip` command.", color = discord.Colour.red())
     await ctx.send(embed=embed)
     
 @client.command(aliases=['queue','add'], help='Adds a song to the queue ')
@@ -622,7 +621,7 @@ async def info_error(ctx, error):
 @client.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound):
-        embed = discord.Embed(description = 'Invalid command. Having trouble? Use the **!helpme** command.', color = discord.Colour.red())
+        embed = discord.Embed(description = 'Invalid command. Having trouble? Use the `;helpme` command.', color = discord.Colour.red())
         await ctx.reply(embed=embed)
 
 client.run(os.environ.get('DISCORD'))
