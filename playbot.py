@@ -216,7 +216,81 @@ async def skip(ctx):
   else:
     not_in_voice =  discord.Embed(description =author_not_in_voice_channel, color = discord.Colour.red())
     await ctx.reply(embed=not_in_voice)
+
+@client.command(help = 'Search for a specific song')
+async def search(ctx, *args):
+  play_name = ""
+
+  for arg in args:
+    play_name += f"{arg} "
+  
+  if not ctx.voice_client:
+    if ctx.author.voice:
+      channel = ctx.message.author.voice.channel
+      titles_on_song_command.clear()
+      titles.clear()
+      voice_connect = await channel.connect()
+      embed = discord.Embed(description = f'Joined **{channel}**', color = discord.Colour.red())
+      await ctx.send(embed=embed)
+
+    else:
+      embed2 = discord.Embed(description = author_not_in_voice_channel, color = discord.Colour.red())
+      await ctx.send(embed=embed2)
+
+  voice = ctx.guild.voice_client
+  play_check = discord.utils.get(client.voice_clients, guild=ctx.guild)
+  query_stringyt = urllib.parse.urlencode({"search_query" : play_name})
+  html_contentyt = urllib.request.urlopen("https://www.youtube.com/results?"+query_stringyt)
+  search_resultsyt = re.findall(r'url\"\:\"\/watch\?v\=(.*?(?=\"))', html_contentyt.read().decode())
+  list1 = []
+  for i in range(0, 10):
+    try:
+        newsong = pafy.new(search_resultsyt[i])
+        list1.append(f"**{i+1}** : {newsong.title} **[{newsong.duration}]**")
+    except ValueError:
+        continue
+
+  results = '\n\n'.join(list1)
+
+  embed = discord.Embed(description=f'**Type the number of your choice. Type 0 to cancel.**\n\n{results}', color = discord.Colour.red())
+  await ctx.send(embed=embed)
+
+  def check(msg):
+    return msg.author == ctx.author and msg.channel == ctx.channel and int(msg.content) in [i for i in range(len(list1))]
+
+  msg = await client.wait_for("message", check=check)
+  if int(msg.content) != 0:
+    newsong = pafy.new(search_resultsyt[int(msg.content)-1])
+    audio = newsong.getbestaudio() 
+    newsource = FFmpegPCMAudio(audio.url, **FFMPEG_OPTIONS)
+    time.sleep(1.25)
+    final_link = f"https://www.youtube.com/watch?v={search_resultsyt[i]}"
     
+    if not play_check.is_playing() and not play_check.is_paused():
+        status = '!song'
+        titles_on_song_command.insert(0, newsong.title)
+        add_to_now_playing(newsong.title, status)
+        play_song(ctx, newsource, newsong.title, final_link)
+    else:
+        status = '!q'
+        embed2 = discord.Embed(description = f"Added to queue: **{newsong.title}**", color = discord.Colour.red())
+        await ctx.send(embed=embed2)
+        add_to_queue(ctx, newsource, newsong.title)
+        add_to_now_playing(newsong.title, status)
+        songs = list(f'• {titles[i]}' for i in range(0,len(titles)))
+        string = '\n'.join(songs)
+        if string != '':
+            embed3 = discord.Embed(title= '**Queued songs**:', description =string, color = discord.Colour.red())
+            await ctx.send(embed=embed3)
+        else:
+            embed4 = discord.Embed(title=f"**Queued songs**:", description =  "None", color = discord.Colour.red())
+            await ctx.send(embed=embed4)
+
+
+  else:
+    embed2 = discord.Embed(description = 'Cancelled search', color=discord.Colour.red())
+    await ctx.send(embed=embed2)
+
 @client.command(help='Lets me play a song in your current voice channel')
 async def song(ctx, *args):
   play_name = ""
@@ -240,7 +314,7 @@ async def song(ctx, *args):
   voice = ctx.guild.voice_client
   play_check = discord.utils.get(client.voice_clients, guild=ctx.guild)
   
-  if not play_check.is_playing():
+  if not play_check.is_playing() and not play_check.is_paused():
     if 'https://www.youtube.com/' not in play_name:
       query_stringyt = urllib.parse.urlencode({"search_query" : play_name + 'audio'})
       html_contentyt = urllib.request.urlopen("https://www.youtube.com/results?"+query_stringyt)
@@ -253,7 +327,7 @@ async def song(ctx, *args):
 
       newsong = pafy.new(search_resultsyt[i])
       audio = newsong.getbestaudio() 
-      newsource = FFmpegPCMAudio(audio.url, **FFMPEG_OPTIONS)
+      newsource = FFmpegPCMAudio(audio.url, FFMPEG_OPTIONS)
       titles_on_song_command.insert(0, newsong.title)
 
       time.sleep(1.25)
@@ -411,8 +485,8 @@ async def rq(ctx):
     if queues[ctx.message.guild.id] != [] and titles != []:
       # try:
       songs = list(f'**{i+1}** : {titles[i]}' for i in range(0, len(titles)))
-      str = '\n'.join(songs)
-      embed = discord.Embed(title=f"Type the position of the song to remove (0 to cancel):", description=str, color = discord.Colour.red())
+      str = '\n\n'.join(songs)
+      embed = discord.Embed(description=f"**Type the position of the song to remove (0 to cancel):**\n\n{str}", color = discord.Colour.red())
       await ctx.reply(embed=embed)
       
       def check(msg):
