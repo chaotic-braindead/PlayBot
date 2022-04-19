@@ -12,3 +12,9 @@ A Discord bot that plays music from YouTube servers. I just wanted to make one m
 
 
 **[Command List](https://github.com/chaotic-braindead/PlayBot/blob/main/help.txt)**
+
+##Screenshots
+
+![Screenshot0](https://github.com/chaotic-braindead/PlayBot/blob/main/screenshots/Screenshot0.png?raw=true)
+![Screenshot1](https://github.com/chaotic-braindead/PlayBot/blob/main/screenshots/Screenshot1.png?raw=true)
+
