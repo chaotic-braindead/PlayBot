@@ -79,7 +79,7 @@ def check_queue(ctx, id):
 
 @client.event
 async def on_ready():
-    await client.change_presence(status=discord.Status.idle, activity=discord.Game('!helpme | @raffy'))
+    await client.change_presence(status=discord.Status.idle, activity=discord.Game(';helpme | @raffy'))
     print(f'Logged in as {client.user}')
 
 @client.command(help='Say hello to PlayBot!')
@@ -109,10 +109,7 @@ async def joke(ctx):
 
 @client.command(help='Lets me tell you something about any topic (sometimes inaccurate!)')
 async def summary(ctx, *args):
-  topic = ""
-
-  for arg in args:
-    topic += arg 
+  topic = " ".join(args)
 
   info = wikipedia.summary(topic, auto_suggest=False, sentences=2)
   img = wikipedia.page(topic)
@@ -219,10 +216,7 @@ async def skip(ctx):
 
 @client.command(help = 'Search for a specific song')
 async def search(ctx, *args):
-  play_name = ""
-
-  for arg in args:
-    play_name += f"{arg} "
+  play_name = " ".join(args)
   
   if not ctx.voice_client:
     if ctx.author.voice:
@@ -292,10 +286,7 @@ async def search(ctx, *args):
 
 @client.command(help='Lets me play a song in your current voice channel')
 async def song(ctx, *args):
-  play_name = ""
-
-  for arg in args:
-    play_name += f"{arg} "
+  play_name = " ".join(args)
   
   if not ctx.voice_client:
     if ctx.author.voice:
@@ -354,10 +345,7 @@ async def song(ctx, *args):
     
 @client.command(aliases=['queue','add'], help='Adds a song to the queue ')
 async def q(ctx, *args):
-  q_name = ""
-
-  for arg in args:
-    q_name += f"{arg} "
+  q_name = " ".join(args)
 
   if not ctx.voice_client:
     embed = discord.Embed(description =bot_not_in_voice_channel, color = discord.Colour.red())
@@ -595,10 +583,8 @@ async def lyrics(ctx):
     await ctx.send(embed=embed9)
 
 @client.command(help='Deletes a specified number of messages in a channel')
-async def cls(ctx, *args:int):
-  num = 1
-  for arg in args:
-    num += arg
+async def cls(ctx, arg:int):
+  num = 1 + arg
   await ctx.channel.purge(limit=num)
 
 @client.event
