@@ -73,7 +73,7 @@ def play_song(ctx, song_source, song_title, final_link):
 def check_queue(ctx, id):
     # try:
     voice_check = discord.utils.get(client.voice_clients, guild=ctx.guild)
-    if queues[id] != []:
+    if queues[id]:
         time.sleep(1)
         voice = ctx.guild.voice_client
         voice.stop()
@@ -180,11 +180,11 @@ async def join(ctx):
         if ctx.author.voice:
             channel = ctx.message.author.voice.channel
             voice = await channel.connect()
-            embed = generate_msg(description=f"Joined **{channel}**")
+            embed = generate_msg(f"Joined **{channel}**")
             await ctx.send(embed=embed)
 
         else:
-            embed2 = generate_msg(description=AUTHOR_NOT_IN_VOICE_CHANNEL)
+            embed2 = generate_msg(AUTHOR_NOT_IN_VOICE_CHANNEL)
             await ctx.send(embed=embed2)
     else:
         embed3 = generate_msg(CHANNEL_NOT_BOT)
@@ -223,7 +223,7 @@ async def pause(ctx):
                 embed = generate_msg(f"Paused **{titles_on_song_command[0]}**")
                 await ctx.send(embed=embed)
             else:
-                failed = generate_msg(description="There is no song being played")
+                failed = generate_msg("There is no song being played")
                 await ctx.send(embed=failed)
 
         else:
@@ -295,7 +295,7 @@ async def search(ctx, *args):
                 await ctx.send(embed=embed)
 
             else:
-                embed2 = generate_msg(description=AUTHOR_NOT_IN_VOICE_CHANNEL)
+                embed2 = generate_msg(AUTHOR_NOT_IN_VOICE_CHANNEL)
                 await ctx.send(embed=embed2)
 
         voice = ctx.guild.voice_client
@@ -308,12 +308,12 @@ async def search(ctx, *args):
             r"url\"\:\"\/watch\?v\=(.*?(?=\"))", html_contentyt.read().decode()
         )
         list1 = []
-        for i in range(0, 10):
+        for i in range(10):
             try:
                 newsong = pafy.new(search_resultsyt[i])
                 list1.append(f"**{i+1}** : {newsong.title} **[{newsong.duration}]**")
             except ValueError:
-                continue
+                break
 
         results = "\n\n".join(list1)
 
@@ -330,7 +330,7 @@ async def search(ctx, *args):
             )
 
         msg = await client.wait_for("message", check=check)
-        if int(msg.content) != 0:
+        if int(msg.content) > 0 and int(msg.content) <= len(list1):
             newsong = pafy.new(search_resultsyt[int(msg.content) - 1])
             audio = newsong.getbestaudio()
             newsource = FFmpegPCMAudio(audio.url, **FFMPEG_OPTIONS)
@@ -347,9 +347,9 @@ async def search(ctx, *args):
                 await ctx.send(embed=embed2)
                 add_to_queue(ctx, newsource, newsong.title)
                 add_to_now_playing(newsong.title, status)
-                songs = list(f"• {titles[i]}" for i in range(0, len(titles)))
+                songs = list(f"• {titles[i]}" for i in range(len(titles)))
                 string = "\n".join(songs)
-                if string != "":
+                if string:
                     embed3 = discord.Embed(
                         title="**Queued songs**:",
                         description=string,
@@ -495,11 +495,9 @@ async def q(ctx, *args):
                                 f"Added to queue: **{next_in_queue.title}**\nhttps://www.youtube.com/watch?v={results_queue[0]}"
                             )
                             await ctx.send(embed=embed2)
-                            songs = list(
-                                f"• {titles[i]}" for i in range(0, len(titles))
-                            )
+                            songs = list(f"• {titles[i]}" for i in range(len(titles)))
                             string = "\n".join(songs)
-                            if string != "":
+                            if string:
                                 embed3 = discord.Embed(
                                     title=f"**Queued songs**:",
                                     description=string,
@@ -527,7 +525,7 @@ async def q(ctx, *args):
                         add_to_queue(ctx, yt_queued_song, yt_new_queue.title)
                         add_to_now_playing(yt_new_queue.title, status)
 
-                        songs2 = list(f"• {titles[i]}" for i in range(0, len(titles)))
+                        songs2 = list(f"• {titles[i]}" for i in range(len(titles)))
                         str2 = "\n".join(songs2)
 
                         if (
@@ -565,7 +563,7 @@ async def q(ctx, *args):
 async def stop(ctx):
     if "bot" in str(ctx.channel):
         if not ctx.voice_client:
-            embed = generate_msg(description=BOT_NOT_IN_VOICE_CHANNEL)
+            embed = generate_msg(BOT_NOT_IN_VOICE_CHANNEL)
             await ctx.send(embed=embed)
 
         if ctx.author.voice:
@@ -621,7 +619,7 @@ async def rq(ctx):
         if ctx.author.voice:
             if queues[ctx.channel.id] and titles:
                 # try:
-                songs = list(f"**{i+1}** : {titles[i]}" for i in range(0, len(titles)))
+                songs = list(f"**{i+1}** : {titles[i]}" for i in range(len(titles)))
                 string = "\n\n".join(songs)
                 embed = generate_msg(
                     f"**Type the position of the song to remove (0 to cancel):**\n\n{string}"
@@ -632,11 +630,11 @@ async def rq(ctx):
                     return (
                         msg.author == ctx.author
                         and msg.channel == ctx.channel
-                        and int(msg.content) in [i for i in range(0, 20)]
+                        and int(msg.content) in [i for i in range(20)]
                     )
 
                 msg = await client.wait_for("message", check=check)
-                if int(msg.content) != 0:
+                if int(msg.content) > 0 and int(msg.content) <= len(songs):
                     queues[ctx.channel.id].pop(int(msg.content) - 1)
                     embed2 = generate_msg(
                         f"Removed **{titles[int(msg.content)-1]}** from queue"
@@ -644,9 +642,9 @@ async def rq(ctx):
                     await ctx.send(embed=embed2)
                     titles.pop(int(msg.content) - 1)
                     titles_on_song_command.pop(int(msg.content))
-                    songs = list(f"• {titles[i]}" for i in range(0, len(titles)))
+                    songs = list(f"• {titles[i]}" for i in range(len(titles)))
                     string = "\n".join(songs)
-                    if string != "":
+                    if string:
                         embed3 = discord.Embed(
                             title="**Queued songs**:",
                             description=string,
@@ -685,7 +683,7 @@ async def qs(ctx):
             if ctx.author.voice:
                 songs = list(f"• {titles[i]}" for i in range(0, len(titles)))
                 string = "\n".join(songs)
-                if string != "":
+                if string:
                     embed = discord.Embed(
                         title="**Queued songs**:",
                         description=string,
