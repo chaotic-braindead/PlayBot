@@ -535,10 +535,13 @@ async def song(ctx, *args):
             newsong = pafy.new(search_resultsyt[i])
             audio = newsong.getbestaudio()
             newsource = FFmpegPCMAudio(audio.url, **FFMPEG_OPTIONS)
+            newsong_title = newsong.title
+            if origin == "spotify":
+                newsong_title = play_name
             if ctx.channel.id in titles_on_song_command:
-                titles_on_song_command[ctx.channel.id].insert(0, newsong.title)
+                titles_on_song_command[ctx.channel.id].insert(0, newsong_title)
             else:
-                titles_on_song_command[ctx.channel.id] = [newsong.title]
+                titles_on_song_command[ctx.channel.id] = [newsong_title]
 
             final_link = f"https://www.youtube.com/watch?v={search_resultsyt[i]}"
             if origin == "youtube":
