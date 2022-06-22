@@ -21,7 +21,7 @@ class SpotifyAPI:
 
             return access_token
 
-        while access_token is None:
+        while not access_token:
             access_token = SpotifyAPI.extract_access_token(CLIENT_ID, CLIENT_SECRET)
             return access_token
 
@@ -41,8 +41,6 @@ class SpotifyAPI:
 if __name__ == "__main__":
     CLIENT_ID = "38f25146e683409c8cb596834e5ca70e"
     CLIENT_SECRET = "d69916c4275a40a7bac7caeb887b93f4"
-    access_token = None
-    spotify = None
 
     access_token = SpotifyAPI.extract_access_token(CLIENT_ID, CLIENT_SECRET)
     spotify = SpotifyAPI(access_token)

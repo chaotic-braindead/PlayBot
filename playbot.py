@@ -50,25 +50,25 @@ def generate_msg(msg=None, title_msg=None, colr=discord.Colour.red()):
         return discord.Embed(title=title_msg, description=msg, color=colr)
 
 
-def add_to_queue(ctx, queued_song, song_title):
-    guild_id = ctx.channel.id
+def add(ctx, song_title, from_queue_command=False, **kwargs):
+    if from_queue_command:
+        if ctx.channel.id in queues and ctx.channel.id in titles:
+            queues[ctx.channel.id].append(kwargs["source"])
+            titles[ctx.channel.id].append(song_title)
+        else:
+            queues[ctx.channel.id] = [kwargs["source"]]
+            titles[ctx.channel.id] = [song_title]
 
-    if guild_id in queues and guild_id in titles:
-        queues[guild_id].append(queued_song)
-        titles[guild_id].append(song_title)
-    else:
-        queues[guild_id] = [queued_song]
-        titles[guild_id] = [song_title]
-
-
-def add_to_now_playing(ctx, song_title, status):
-    if "!q" in status:
         if ctx.channel.id in titles_on_song_command:
             titles_on_song_command[ctx.channel.id].append(song_title)
         else:
             titles_on_song_command[ctx.channel.id] = [song_title]
-    elif "!skip" in status:
-        titles_on_song_command[ctx.channel.id].pop(0)
+        return
+
+    if ctx.channel.id in titles_on_song_command:
+        titles_on_song_command[ctx.channel.id].insert(0, song_title)
+    else:
+        titles_on_song_command[ctx.channel.id] = [song_title]
 
 
 def play_song(ctx, song_source, song_title, final_link):
@@ -82,10 +82,31 @@ def play_song(ctx, song_source, song_title, final_link):
     voice.play(song_source, after=lambda x=None: check_queue(ctx, ctx.channel.id))
 
 
+def search_for_link(play_name, is_spotify=False, **kwargs):
+    query = urllib.parse.urlencode({"search_query": play_name + "audio"})
+    html = urllib.request.urlopen("https://www.youtube.com/results?" + query)
+    results = re.findall(
+        r"url\"\:\"\/watch\?v\=(.*?(?=\"))",
+        html.read().decode(),
+    )
+    i = 0
+    p = pafy.new(results[i])
+    if p.length >= 600:
+        i += 1
+    p = pafy.new(results[i])
+    audio = p.getbestaudio()
+    queued_song = FFmpegPCMAudio(audio.url, **FFMPEG_OPTIONS)
+    next_in_queue_title = p.title
+    link = f"https://www.youtube.com/watch?v={results[i]}"
+    if is_spotify:
+        next_in_queue_title = play_name
+        link = kwargs["link"]
+    return (queued_song, next_in_queue_title, link)
+
+
 def check_queue(ctx, id):
     try:
         if queues[id]:
-            # time.sleep(1)
             voice = ctx.guild.voice_client
             voice.stop()
             source = queues[id].pop(0)
@@ -153,8 +174,9 @@ async def now(ctx):
                 f"🎶 Now playing: **{titles_on_song_command[ctx.channel.id][0]}** 🎶"
             )
         )
-    else:
-        await ctx.send(embed=generate_msg(f"No song is playing"))
+        return
+
+    await ctx.send(embed=generate_msg(f"No song is playing"))
 
 
 @client.command(help="Lets me tell you programming jokes")
@@ -284,8 +306,8 @@ async def pause(ctx):
                 f"Paused **{titles_on_song_command[ctx.channel.id][0]}**"
             )
         )
-    else:
-        await ctx.send(embed=generate_msg("There is no song being played"))
+        return
+    await ctx.send(embed=generate_msg("There is no song being played"))
 
 
 @client.command(aliases=["continue", "res"], help="Resumes the paused song")
@@ -323,8 +345,8 @@ async def play(ctx):
                 f"Resumed **{titles_on_song_command[ctx.channel.id][0]}**"
             )
         )
-    else:
-        await ctx.send(embed=generate_msg("There is no audio currently playing"))
+        return
+    await ctx.send(embed=generate_msg("There is no audio currently playing"))
 
 
 @client.command(aliases=["next"], help="Skip to the next song in your queue")
@@ -356,8 +378,8 @@ async def skip(ctx):
     voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
     if voice.is_playing() or voice.is_paused():
         voice.stop()
-    else:
-        await ctx.reply(embed=generate_msg("Can't skip because no song is playing"))
+        return
+    await ctx.reply(embed=generate_msg("Can't skip because no song is playing"))
 
 
 @client.command(help="Search for a specific song")
@@ -438,36 +460,30 @@ async def search(ctx, *args):
             final_link = f"https://www.youtube.com/watch?v={search_resultsyt[i]}"
 
             if not play_check.is_playing() and not play_check.is_paused():
-                status = "!song"
-                if ctx.channel.id in titles_on_song_command:
-                    titles_on_song_command[ctx.channel.id].insert(0, newsong.title)
-                else:
-                    titles_on_song_command[ctx.channel.id] = [newsong.title]
-                add_to_now_playing(ctx, newsong.title, status)
+                add(ctx, newsong.title)
                 play_song(ctx, newsource, newsong.title, final_link)
-            else:
-                status = "!q"
-                await ctx.send(
-                    embed=generate_msg(f"Added to queue: **{newsong.title}**")
-                )
-                add_to_queue(ctx, newsource, newsong.title)
-                add_to_now_playing(ctx, newsong.title, status)
-                songs = list(
-                    f"• {titles[ctx.channel.id][i]}"
-                    for i in range(len(titles[ctx.channel.id]))
-                )
-                string = "\n".join(songs)
-                if string:
-                    await ctx.send(
-                        embed=generate_msg(title_msg="**Queued songs**:", msg=string)
-                    )
-                else:
-                    await ctx.send(
-                        embed=generate_msg(title_msg=f"**Queued songs**:", msg="None")
-                    )
+                return
 
-        else:
-            await ctx.send(embed=generate_msg("Cancelled search"))
+            await ctx.send(embed=generate_msg(f"Added to queue: **{newsong.title}**"))
+
+            add(ctx, newsong.title, True, source=newsource)
+
+            songs = list(
+                f"• {titles[ctx.channel.id][i]}"
+                for i in range(len(titles[ctx.channel.id]))
+            )
+            string = "\n".join(songs)
+            if string:
+                await ctx.send(
+                    embed=generate_msg(title_msg="**Queued songs**:", msg=string)
+                )
+                return
+
+            await ctx.send(
+                embed=generate_msg(title_msg=f"**Queued songs**:", msg="None")
+            )
+
+        await ctx.send(embed=generate_msg("Cancelled search"))
 
 
 @client.command(help="Lets me play a song in your current voice channel")
@@ -513,73 +529,36 @@ async def song(ctx, *args):
             )
 
         play_check = discord.utils.get(client.voice_clients, guild=ctx.guild)
-        status = "!song"
 
-        def search_for_link(play_name, origin, **kwargs):
-            query_stringyt = urllib.parse.urlencode(
-                {"search_query": play_name + "audio"}
-            )
-            html_contentyt = urllib.request.urlopen(
-                "https://www.youtube.com/results?" + query_stringyt
-            )
-            search_resultsyt = re.findall(
-                r"url\"\:\"\/watch\?v\=(.*?(?=\"))",
-                html_contentyt.read().decode(),
-            )
-
-            i = 0
-            newsong = pafy.new(search_resultsyt[i])
-            if newsong.length >= 600:
-                i += 1
-
-            newsong = pafy.new(search_resultsyt[i])
-            audio = newsong.getbestaudio()
-            newsource = FFmpegPCMAudio(audio.url, **FFMPEG_OPTIONS)
-            newsong_title = newsong.title
-            if origin == "spotify":
-                newsong_title = play_name
-            if ctx.channel.id in titles_on_song_command:
-                titles_on_song_command[ctx.channel.id].insert(0, newsong_title)
-            else:
-                titles_on_song_command[ctx.channel.id] = [newsong_title]
-
-            final_link = f"https://www.youtube.com/watch?v={search_resultsyt[i]}"
-            if origin == "youtube":
-                add_to_now_playing(ctx, newsong.title, status)
-                play_song(ctx, newsource, newsong.title, final_link)
-            elif origin == "spotify":
-                final_link = kwargs["link"]
-                add_to_now_playing(ctx, play_name, status)
-                play_song(ctx, newsource, play_name, final_link)
-
-        if not play_check.is_playing():
-            if "https://open.spotify.com" in play_name:
-                track_id = play_name[31 : play_name.index("?")]
-
-                access_token = spoti.SpotifyAPI.extract_access_token(
-                    __SPOTIFY_CLIENT_ID, __SPOTIFY_CLIENT_SECRET
-                )
-                spotify = spoti.SpotifyAPI(access_token)
-                track_name = spotify.get(track_id)
-                search_for_link(track_name, "spotify", link=play_name)
-
-            elif "https://www.youtube.com/" not in play_name:
-                search_for_link(play_name, "youtube")
-
-            elif "https://www.youtube.com/" in play_name:
-                yt_link = pafy.new(play_name)
-                audio = yt_link.getbestaudio()
-                yt_link_play = FFmpegPCMAudio(audio.url, **FFMPEG_OPTIONS)
-                titles_on_song_command[ctx.channel.id].insert(0, yt_link.title)
-                add_to_now_playing(ctx, yt_link.title, status)
-                play_song(ctx, yt_link_play, yt_link.title, "")
-
-        else:
+        if play_check.is_playing():
             await ctx.send(
                 embed=generate_msg(
                     "There is a song currently playing. To add a song to a queue, use the `;q` command. To skip to the next queued song, use the `;skip` command."
                 )
             )
+            return
+        song, title, link = None, None, None
+        if "https://open.spotify.com" in play_name:
+            track_id = play_name[31 : play_name.index("?")]
+
+            access_token = spoti.SpotifyAPI.extract_access_token(
+                __SPOTIFY_CLIENT_ID, __SPOTIFY_CLIENT_SECRET
+            )
+            spotify = spoti.SpotifyAPI(access_token)
+            track_name = spotify.get(track_id)
+            song, title, link = search_for_link(track_name, True, link=play_name)
+
+        elif "https://www.youtube.com/" not in play_name:
+            song, title, link = search_for_link(play_name)
+
+        elif "https://www.youtube.com/" in play_name:
+            yt_link = pafy.new(play_name)
+            audio = yt_link.getbestaudio()
+            song = FFmpegPCMAudio(audio.url, **FFMPEG_OPTIONS)
+            title = yt_link.title
+
+        add(ctx, title)
+        play_song(ctx, song, title, link)
 
 
 @client.command(aliases=["queue", "add"], help="Adds a song to the queue ")
@@ -610,75 +589,49 @@ async def q(ctx, *args):
     if ctx.message.guild.id not in txt_ch_and_guild_id:
         txt_ch_and_guild_id[ctx.message.guild.id] = (ctx.channel.id, str(ctx.channel))
 
-    status = "!q"
-    if len(titles) < 20:
-
-        def search_for_link(play_name, origin, **kwargs):
-            query_queue = urllib.parse.urlencode({"search_query": play_name + "audio"})
-            html_queue = urllib.request.urlopen(
-                "https://www.youtube.com/results?" + query_queue
-            )
-            results_queue = re.findall(
-                r"url\"\:\"\/watch\?v\=(.*?(?=\"))",
-                html_queue.read().decode(),
-            )
-            i = 0
-            next_in_queue = pafy.new(results_queue[i])
-            if next_in_queue.length >= 600:
-                i += 1
-            next_in_queue = pafy.new(results_queue[i])
-            audio_queue = next_in_queue.getbestaudio()
-            queued_song = FFmpegPCMAudio(audio_queue.url, **FFMPEG_OPTIONS)
-            next_in_queue_title = next_in_queue.title
-            link = f"https://www.youtube.com/watch?v={results_queue[0]}"
-            if origin == "spotify":
-                next_in_queue_title = play_name
-                link = kwargs["link"]
-            return (queued_song, next_in_queue_title, link)
-
-        queued_song, next_in_queue_title, link = None, None, None
-        if "https://open.spotify.com" in q_name:
-            track_id = q_name[31 : q_name.index("?")]
-            access_token = spoti.SpotifyAPI.extract_access_token(
-                __SPOTIFY_CLIENT_ID, __SPOTIFY_CLIENT_SECRET
-            )
-            spotify = spoti.SpotifyAPI(access_token)
-            track_name = spotify.get(track_id)
-            queued_song, next_in_queue_title, link = search_for_link(
-                track_name, "spotify", link=q_name
-            )
-
-        elif "/watch?v=" not in q_name:
-            queued_song, next_in_queue_title, link = search_for_link(q_name, "youtube")
-
-        elif "/watch?v=" in q_name:
-            link = q_name
-            yt_new_queue = pafy.new(link)
-            yt_audio_queue = yt_new_queue.getbestaudio()
-            queued_song = FFmpegPCMAudio(yt_audio_queue.url, **FFMPEG_OPTIONS)
-            next_in_queue_title = yt_new_queue.title
-
-        add_to_queue(ctx, queued_song, next_in_queue_title)
-        add_to_now_playing(ctx, next_in_queue_title, status)
-
-        if not voice_status.is_playing() and not voice_status.is_paused():
-            titles[ctx.channel.id].pop(0)
-            play_song(ctx, queued_song, next_in_queue_title, link)
-
-        else:
-            await ctx.send(
-                embed=generate_msg(
-                    f"Added to queue: **{next_in_queue_title}**\n{link}",
-                )
-            )
-            songs = list(
-                f"• {titles[ctx.channel.id][i]}"
-                for i in range(len(titles[ctx.channel.id]))
-            )
-            string = "\n".join(songs)
-            await ctx.send(embed=generate_msg(title_msg="**Queued songs**", msg=string))
-    else:
+    if not len(titles) < 20:
         await ctx.send(embed=generate_msg("Reached maximum queue limit"))
+        return
+    queued_song, next_in_queue_title, link = None, None, None
+    if "https://open.spotify.com" in q_name:
+        track_id = q_name[31 : q_name.index("?")]
+        access_token = spoti.SpotifyAPI.extract_access_token(
+            __SPOTIFY_CLIENT_ID, __SPOTIFY_CLIENT_SECRET
+        )
+        spotify = spoti.SpotifyAPI(access_token)
+        track_name = spotify.get(track_id)
+        queued_song, next_in_queue_title, link = search_for_link(
+            track_name, True, link=q_name
+        )
+
+    elif "/watch?v=" not in q_name:
+        queued_song, next_in_queue_title, link = search_for_link(q_name)
+
+    elif "/watch?v=" in q_name:
+        link = q_name
+        yt_new_queue = pafy.new(link)
+        yt_audio_queue = yt_new_queue.getbestaudio()
+        queued_song = FFmpegPCMAudio(yt_audio_queue.url, **FFMPEG_OPTIONS)
+        next_in_queue_title = yt_new_queue.title
+
+    add(ctx, next_in_queue_title, True, source=queued_song)
+
+    if not voice_status.is_playing() and not voice_status.is_paused():
+        titles[ctx.channel.id].pop(0)
+        play_song(ctx, queued_song, next_in_queue_title, link)
+        return
+
+    await ctx.send(
+        embed=generate_msg(
+            f"Added to queue: **{next_in_queue_title}**\n{link}",
+        )
+    )
+    songs = list(
+        f"• {titles[ctx.channel.id][i]}" for i in range(len(titles[ctx.channel.id]))
+    )
+    string = "\n".join(songs)
+    await ctx.send(embed=generate_msg(title_msg="**Queued songs**", msg=string))
+    return
 
 
 @client.command(aliases=["end", "quit"], help="Stops current song and clears queue")
@@ -705,22 +658,21 @@ async def stop(ctx):
         return
     voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
 
-    if voice.is_playing() or voice.is_paused():
-        if ctx.channel.id in queues:
-            queues[ctx.channel.id].clear()
-        if ctx.channel.id in titles:
-            titles.pop(ctx.channel.id)
-        if ctx.channel.id in titles_on_song_command:
-            titles_on_song_command.pop(ctx.channel.id)
-
-        voice.stop()
-        await ctx.send(
-            embed=generate_msg("Current song stopped and all queues removed")
-        )
-    else:
+    if not voice.is_playing() and not voice.is_paused():
         await ctx.send(
             embed=generate_msg("Can't use command because no song is playing")
         )
+        return
+
+    if ctx.channel.id in queues:
+        queues[ctx.channel.id].clear()
+    if ctx.channel.id in titles:
+        titles.pop(ctx.channel.id)
+    if ctx.channel.id in titles_on_song_command:
+        titles_on_song_command.pop(ctx.channel.id)
+
+    voice.stop()
+    await ctx.send(embed=generate_msg("Current song stopped and all queues removed"))
 
 
 # @client.command() TODO clear command
@@ -789,16 +741,14 @@ async def rq(ctx):
                 await ctx.send(
                     embed=generate_msg(title_msg="**Queued songs**:", msg=string)
                 )
-            else:
-                await ctx.send(
-                    embed=generate_msg(title_msg="**Queued songs:**", msg="None")
-                )
+                return
+            await ctx.send(
+                embed=generate_msg(title_msg="**Queued songs:**", msg="None")
+            )
+        await ctx.send(embed=generate_msg(f"**No queue removed**"))
+        return
 
-        else:
-            await ctx.send(embed=generate_msg(f"**No queue removed**"))
-
-    else:
-        await ctx.reply(embed=generate_msg("**No more queues to remove**"))
+    await ctx.reply(embed=generate_msg("**No more queues to remove**"))
 
 
 @client.command(aliases=["list", "sq", "vq", "view"], help="Views queued songs")
@@ -840,10 +790,9 @@ async def qs(ctx):
             await ctx.send(
                 embed=generate_msg(title_msg="**Queued songs**:", msg=string)
             )
-        else:
-            await ctx.send(
-                embed=generate_msg(title_msg=f"**Queued songs**:", msg="None")
-            )
+            return
+
+        await ctx.send(embed=generate_msg(title_msg=f"**Queued songs**:", msg="None"))
 
     except:
         await ctx.send(embed=generate_msg(title_msg=f"**Queued songs**:", msg="None"))
@@ -882,45 +831,43 @@ async def lyrics(ctx):
 
     voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
 
-    if voice.is_playing() or voice.is_paused():
-
-        extract_lyrics = SongLyrics(
-            os.environ.get("GCS_API_KEY"), os.environ.get("GCS_ENGINE_ID")
-        )
-        lyrics = extract_lyrics.get_lyrics(titles_on_song_command[ctx.channel.id][0])
-        lyr = lyrics["lyrics"].replace("\\n", "\n")
-
-        if len(lyr) + len(titles_on_song_command[ctx.channel.id][0]) <= 2000:
-            await ctx.send(
-                embed=generate_msg(
-                    f"**{titles_on_song_command[ctx.channel.id][0]}**\n{lyr}"
-                )
-            )
-        else:
-            lyr1 = lyr[0 : len(lyr) // 2]
-            lyr2 = lyr[len(lyr) // 2 :]
-
-            if len(lyr2) > 2000:
-                lyr3 = lyr2[0 : len(lyr2) // 2]
-                lyr4 = lyr2[len(lyr2) // 2 :]
-                await ctx.send(
-                    embed=generate_msg(
-                        f"**{titles_on_song_command[ctx.channel.id][0]}**\n{lyr}"
-                    )
-                )
-                await ctx.send(embed=generate_msg(lyr3))
-                await ctx.send(embed=generate_msg(lyr4))
-
-            else:
-                await ctx.send(
-                    embed=generate_msg(
-                        f"**{titles_on_song_command[ctx.channel.id][0]}**\n{lyr1}"
-                    )
-                )
-                await ctx.send(embed=generate_msg(f"{lyr2}"))
-
-    else:
+    if not voice.is_playing() and not voice.is_paused():
         await ctx.send(embed=generate_msg("There is no song playing"))
+        return
+
+    extract_lyrics = SongLyrics(
+        os.environ.get("GCS_API_KEY"), os.environ.get("GCS_ENGINE_ID")
+    )
+    lyrics = extract_lyrics.get_lyrics(titles_on_song_command[ctx.channel.id][0])
+    lyr = lyrics["lyrics"].replace("\\n", "\n")
+
+    if len(lyr) + len(titles_on_song_command[ctx.channel.id][0]) <= 2000:
+        await ctx.send(
+            embed=generate_msg(
+                f"**{titles_on_song_command[ctx.channel.id][0]}**\n{lyr}"
+            )
+        )
+        return
+
+    lyr1 = lyr[0 : len(lyr) // 2]
+    lyr2 = lyr[len(lyr) // 2 :]
+
+    if len(lyr2) > 2000:
+        lyr3 = lyr2[0 : len(lyr2) // 2]
+        lyr4 = lyr2[len(lyr2) // 2 :]
+        await ctx.send(
+            embed=generate_msg(
+                f"**{titles_on_song_command[ctx.channel.id][0]}**\n{lyr}"
+            )
+        )
+        await ctx.send(embed=generate_msg(lyr3))
+        await ctx.send(embed=generate_msg(lyr4))
+        return
+
+    await ctx.send(
+        embed=generate_msg(f"**{titles_on_song_command[ctx.channel.id][0]}**\n{lyr1}")
+    )
+    await ctx.send(embed=generate_msg(f"{lyr2}"))
 
 
 @client.command(help="Deletes a specified number of messages in a channel")
