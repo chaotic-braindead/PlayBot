@@ -6,7 +6,7 @@
 `;summary (topic)` - Lets me tell you something about any topic 
 
 **__These only work when we are both in a voice channel:__**
-`;q (song name or YouTube link)` - Add a song to the queue 
+`;q (song name or YouTube/Spotify link)` - Add a song to the queue 
 `;remove` - Lets you remove a song from the queue 
 `;view` - View queued songs
 `;stop` - Stops current song and clears queue
