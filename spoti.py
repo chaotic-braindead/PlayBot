@@ -33,9 +33,11 @@ class SpotifyAPI:
         if r.status_code not in range(200, 299):
             return None
         track_data = r.json()
-        track_artist = track_data["artists"][0]["name"]
+        track_artists = ", ".join(
+            track_data["artists"][i]["name"] for i in range(len(track_data["artists"]))
+        )
         track_title = track_data["name"]
-        return f"{track_artist} - {track_title}"
+        return f"{track_artists} - {track_title}"
 
 
 if __name__ == "__main__":
@@ -47,4 +49,4 @@ if __name__ == "__main__":
     access_token = SpotifyAPI.extract_access_token(CLIENT_ID, CLIENT_SECRET)
     spotify = SpotifyAPI(access_token)
 
-    print(spotify.get("5j6ZZwA9BnxZi5Bk0Ng4jB"))
+    print(spotify.get("6QLNcOI6YCqdLAS6GLWXMj"))
