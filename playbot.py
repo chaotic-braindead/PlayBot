@@ -742,30 +742,29 @@ async def qs(ctx):
     if txt_ch_and_guild_id and ctx.message.guild.id in txt_ch_and_guild_id:
         channel_id, channel_name = txt_ch_and_guild_id[ctx.message.guild.id]
     if "bot" not in str(ctx.channel):
-        await ctx.reply(embed=generate_msg(ERROR_MSGS[3]))
-        return
+        return await ctx.reply(embed=generate_msg(ERROR_MSGS[3]))
+
     elif (
         txt_ch_and_guild_id
         and ctx.message.guild.id in txt_ch_and_guild_id
         and channel_id != ctx.channel.id
     ):
-        await ctx.reply(embed=generate_msg(f"{ERROR_MSGS[4]} **#{channel_name}**"))
-        return
+        return await ctx.reply(
+            embed=generate_msg(f"{ERROR_MSGS[4]} **#{channel_name}**")
+        )
 
     if not ctx.voice_client:
-        await ctx.reply(embed=generate_msg(ERROR_MSGS[2]))
-        return
+        return await ctx.reply(embed=generate_msg(ERROR_MSGS[2]))
 
     if not ctx.author.voice:
-        await ctx.reply(embed=generate_msg(ERROR_MSGS[1]))
-        return
+        return await ctx.reply(embed=generate_msg(ERROR_MSGS[1]))
 
     if not (
         ctx.author.voice.channel
         and ctx.author.voice.channel == ctx.voice_client.channel
     ):
-        await ctx.send(embed=generate_msg(ERROR_MSGS[5]))
-        return
+        return await ctx.send(embed=generate_msg(ERROR_MSGS[5]))
+
     try:
         songs = list(
             f"• {titles[ctx.channel.id][i]}"
@@ -773,15 +772,18 @@ async def qs(ctx):
         )
         string = "\n".join(songs)
         if string:
-            await ctx.send(
+            return await ctx.send(
                 embed=generate_msg(title_msg="**Queued songs**:", msg=string)
             )
-            return
 
-        await ctx.send(embed=generate_msg(title_msg=f"**Queued songs**:", msg="None"))
+        return await ctx.send(
+            embed=generate_msg(title_msg=f"**Queued songs**:", msg="None")
+        )
 
     except:
-        await ctx.send(embed=generate_msg(title_msg=f"**Queued songs**:", msg="None"))
+        return await ctx.send(
+            embed=generate_msg(title_msg=f"**Queued songs**:", msg="None")
+        )
 
 
 @client.command()
@@ -794,32 +796,29 @@ async def lyrics(ctx):
     if txt_ch_and_guild_id and ctx.message.guild.id in txt_ch_and_guild_id:
         channel_id, channel_name = txt_ch_and_guild_id[ctx.message.guild.id]
     if "bot" not in str(ctx.channel):
-        await ctx.send(embed=generate_msg(ERROR_MSGS[3]))
-        return
+        return await ctx.send(embed=generate_msg(ERROR_MSGS[3]))
+
     elif channel_id != ctx.channel.id:
-        await ctx.reply(embed=generate_msg(f"{ERROR_MSGS[4]} **#{channel_name}**"))
-        return
+        return await ctx.reply(
+            embed=generate_msg(f"{ERROR_MSGS[4]} **#{channel_name}**")
+        )
 
     if not ctx.voice_client:
-        await ctx.send(embed=generate_msg(ERROR_MSGS[2]))
-        return
+        return await ctx.send(embed=generate_msg(ERROR_MSGS[2]))
 
     if not ctx.author.voice:
-        await ctx.reply(embed=generate_msg(ERROR_MSGS[1]))
-        return
+        return await ctx.reply(embed=generate_msg(ERROR_MSGS[1]))
 
     if not (
         ctx.author.voice.channel
         and ctx.author.voice.channel == ctx.voice_client.channel
     ):
-        await ctx.send(embed=generate_msg(ERROR_MSGS[5]))
-        return
+        return await ctx.send(embed=generate_msg(ERROR_MSGS[5]))
 
     voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
 
     if not voice.is_playing() and not voice.is_paused():
-        await ctx.send(embed=generate_msg("There is no song playing"))
-        return
+        return await ctx.send(embed=generate_msg("There is no song playing"))
 
     extract_lyrics = SongLyrics(
         os.environ.get("GCS_API_KEY"), os.environ.get("GCS_ENGINE_ID")
@@ -828,12 +827,11 @@ async def lyrics(ctx):
     lyr = lyrics["lyrics"].replace("\\n", "\n")
 
     if len(lyr) + len(titles_on_song_command[ctx.channel.id][0]) <= 2000:
-        await ctx.send(
+        return await ctx.send(
             embed=generate_msg(
                 f"**{titles_on_song_command[ctx.channel.id][0]}**\n{lyr}"
             )
         )
-        return
 
     lyr1 = lyr[0 : len(lyr) // 2]
     lyr2 = lyr[len(lyr) // 2 :]
@@ -847,19 +845,18 @@ async def lyrics(ctx):
             )
         )
         await ctx.send(embed=generate_msg(lyr3))
-        await ctx.send(embed=generate_msg(lyr4))
-        return
+        return await ctx.send(embed=generate_msg(lyr4))
 
     await ctx.send(
         embed=generate_msg(f"**{titles_on_song_command[ctx.channel.id][0]}**\n{lyr1}")
     )
-    await ctx.send(embed=generate_msg(f"{lyr2}"))
+    return await ctx.send(embed=generate_msg(f"{lyr2}"))
 
 
 @client.command(help="Deletes a specified number of messages in a channel")
 async def cls(ctx, arg: int):
     num = 1 + arg
-    await ctx.channel.purge(limit=num)
+    return await ctx.channel.purge(limit=num)
 
 
 @client.event
@@ -869,22 +866,22 @@ async def on_message(message):
 
     for key in KEY_WORDS.keys():
         if key in msg:
-            await message.channel.send(
+            return await message.channel.send(
                 embed=generate_msg(f"{KEY_WORDS[key]} {mention}!")
             )
-    await client.process_commands(message)
+    return await client.process_commands(message)
 
 
 @lyrics.error
 async def info_error(ctx, error):
     if isinstance(error, commands.CommandInvokeError):
-        await ctx.send(embed=generate_msg("Lyrics are currently unavailable"))
+        return await ctx.send(embed=generate_msg("Lyrics are currently unavailable"))
 
 
 @client.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound):
-        await ctx.reply(
+        return await ctx.reply(
             embed=generate_msg(
                 "Invalid command. Having trouble? Use the `;helpme` command."
             )
