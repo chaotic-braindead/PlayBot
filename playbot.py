@@ -63,6 +63,7 @@ def add(ctx, song_title, **kwargs):
             titles_on_song_command[ctx.channel.id].append(song_title)
         else:
             titles_on_song_command[ctx.channel.id] = [song_title]
+        return
 
     if ctx.channel.id in titles_on_song_command:
         titles_on_song_command[ctx.channel.id].insert(0, song_title)
