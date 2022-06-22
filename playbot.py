@@ -50,8 +50,8 @@ def generate_msg(msg=None, title_msg=None, colr=discord.Colour.red()):
         return discord.Embed(title=title_msg, description=msg, color=colr)
 
 
-def add(ctx, song_title, from_queue_command=False, **kwargs):
-    if from_queue_command:
+def add(ctx, song_title, **kwargs):
+    if kwargs:
         if ctx.channel.id in queues and ctx.channel.id in titles:
             queues[ctx.channel.id].append(kwargs["source"])
             titles[ctx.channel.id].append(song_title)
@@ -63,7 +63,6 @@ def add(ctx, song_title, from_queue_command=False, **kwargs):
             titles_on_song_command[ctx.channel.id].append(song_title)
         else:
             titles_on_song_command[ctx.channel.id] = [song_title]
-        return
 
     if ctx.channel.id in titles_on_song_command:
         titles_on_song_command[ctx.channel.id].insert(0, song_title)
@@ -82,7 +81,7 @@ def play_song(ctx, song_source, song_title, final_link):
     voice.play(song_source, after=lambda x=None: check_queue(ctx, ctx.channel.id))
 
 
-def search_for_link(play_name, is_spotify=False, **kwargs):
+def search_for_link(play_name, **kwargs):
     query = urllib.parse.urlencode({"search_query": play_name + "audio"})
     html = urllib.request.urlopen("https://www.youtube.com/results?" + query)
     results = re.findall(
@@ -98,7 +97,7 @@ def search_for_link(play_name, is_spotify=False, **kwargs):
     queued_song = FFmpegPCMAudio(audio.url, **FFMPEG_OPTIONS)
     next_in_queue_title = p.title
     link = f"https://www.youtube.com/watch?v={results[i]}"
-    if is_spotify:
+    if kwargs:
         next_in_queue_title = play_name
         link = kwargs["link"]
     return (queued_song, next_in_queue_title, link)
@@ -457,7 +456,7 @@ async def search(ctx, *args):
 
             await ctx.send(embed=generate_msg(f"Added to queue: **{newsong.title}**"))
 
-            add(ctx, newsong.title, True, source=newsource)
+            add(ctx, newsong.title, source=newsource)
 
             songs = list(
                 f"• {titles[ctx.channel.id][i]}"
@@ -535,7 +534,7 @@ async def song(ctx, *args):
             )
             spotify = spoti.SpotifyAPI(access_token)
             track_name = spotify.get(track_id)
-            song, title, link = search_for_link(track_name, True, link=play_name)
+            song, title, link = search_for_link(track_name, link=play_name)
 
         elif "https://www.youtube.com/" not in play_name:
             song, title, link = search_for_link(play_name)
@@ -589,7 +588,7 @@ async def q(ctx, *args):
         spotify = spoti.SpotifyAPI(access_token)
         track_name = spotify.get(track_id)
         queued_song, next_in_queue_title, link = search_for_link(
-            track_name, True, link=q_name
+            track_name, link=q_name
         )
 
     elif "/watch?v=" not in q_name:
@@ -602,7 +601,7 @@ async def q(ctx, *args):
         queued_song = FFmpegPCMAudio(yt_audio_queue.url, **FFMPEG_OPTIONS)
         next_in_queue_title = yt_new_queue.title
 
-    add(ctx, next_in_queue_title, True, source=queued_song)
+    add(ctx, next_in_queue_title, source=queued_song)
 
     if not voice_status.is_playing() and not voice_status.is_paused():
         titles[ctx.channel.id].pop(0)
@@ -767,8 +766,7 @@ async def qs(ctx):
 
     try:
         songs = list(
-            f"• {titles[ctx.channel.id][i]}"
-            for i in range(0, len(titles[ctx.channel.id]))
+            f"• {titles[ctx.channel.id][i]}" for i in range(len(titles[ctx.channel.id]))
         )
         string = "\n".join(songs)
         if string:
@@ -833,11 +831,11 @@ async def lyrics(ctx):
             )
         )
 
-    lyr1 = lyr[0 : len(lyr) // 2]
+    lyr1 = lyr[: len(lyr) // 2]
     lyr2 = lyr[len(lyr) // 2 :]
 
     if len(lyr2) > 2000:
-        lyr3 = lyr2[0 : len(lyr2) // 2]
+        lyr3 = lyr2[: len(lyr2) // 2]
         lyr4 = lyr2[len(lyr2) // 2 :]
         await ctx.send(
             embed=generate_msg(
