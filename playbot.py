@@ -745,6 +745,7 @@ async def rq(ctx):
             await ctx.send(
                 embed=generate_msg(title_msg="**Queued songs:**", msg="None")
             )
+            return
         await ctx.send(embed=generate_msg(f"**No queue removed**"))
         return
 
