@@ -1,4 +1,4 @@
-`;song (song name or YouTube link)` - Lets me play a song in your current voice channel
+`;song (song name or YouTube/Spotify link)` - Lets me play a song in your current voice channel
 `;search (song name)` - Lets me display a list of song options that you can choose from
 `;join` - Lets me join your current voice channel
 `;leave` - Lets me leave the voice channel
@@ -15,6 +15,3 @@
 `;skip` - Skip to the next song in your queue
 `;now` - Shows the title of the current song playing
 `;lyrics` - Shows lyrics of current song playing
-
-
-
