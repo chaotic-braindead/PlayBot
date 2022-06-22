@@ -36,8 +36,8 @@ KEY_WORDS = {
     "bad bot": "I'm sorry. I'll do better next time,",
 }
 
-__SPOTIFY_CLIENT_ID = "38f25146e683409c8cb596834e5ca70e"
-__SPOTIFY_CLIENT_SECRET = "d69916c4275a40a7bac7caeb887b93f4"
+__SPOTIFY_CLIENT_ID = os.environ.get("PLAYBOT_SPOTI_ID")
+__SPOTIFY_CLIENT_SECRET = os.environ.get("PLAYBOT_SPOTI_SECRET")
 
 
 def generate_msg(msg=None, title_msg=None, colr=discord.Colour.red()):
