@@ -150,7 +150,7 @@ async def on_ready():
 
 @client.command(help="Say hello to PlayBot!")
 async def hello(ctx):
-    await ctx.reply(
+    return await ctx.reply(
         embed=generate_msg(
             f"Hello, {ctx.message.author.mention}! If you need help with my commands, just type `;helpme`"
         )
@@ -160,29 +160,26 @@ async def hello(ctx):
 @client.command(aliases=["current"], help="Shows the title of the current song playing")
 async def now(ctx):
     if "bot" not in str(ctx.channel):
-        await ctx.reply(embed=generate_msg(ERROR_MSGS[3]))
-        return
+        return await ctx.reply(embed=generate_msg(ERROR_MSGS[3]))
 
     if not ctx.author.voice:
-        await ctx.reply(embed=generate_msg(ERROR_MSGS[1]))
-        return
+        return await ctx.reply(embed=generate_msg(ERROR_MSGS[1]))
 
     voice = discord.utils.get(ctx.bot.voice_clients, guild=ctx.guild)
     if voice.is_playing() or voice.is_paused():
-        await ctx.send(
+        return await ctx.send(
             embed=generate_msg(
                 f"🎶 Now playing: **{titles_on_song_command[ctx.channel.id][0]}** 🎶"
             )
         )
-        return
 
-    await ctx.send(embed=generate_msg(f"No song is playing"))
+    return await ctx.send(embed=generate_msg(f"No song is playing"))
 
 
 @client.command(help="Lets me tell you programming jokes")
 async def joke(ctx):
     joke = pyjokes.get_joke()
-    await ctx.send(embed=generate_msg(joke))
+    return await ctx.send(embed=generate_msg(joke))
 
 
 @client.command(
@@ -192,13 +189,13 @@ async def joke(ctx):
 async def summary(ctx, *args):
     topic = " ".join(args)
     info = wikipedia.summary(topic, auto_suggest=False, sentences=2)
-    await ctx.send(embed=generate_msg(info))
+    return await ctx.send(embed=generate_msg(info))
 
 
 @client.command(help="Another help function")
 async def helpme(ctx):
     with open(r"C:\Users\raf\Desktop\Github\PlayBot\help.txt") as f:
-        await ctx.send(
+        return await ctx.send(
             embed=generate_msg(title_msg="__List of commands__", msg=f.read())
         )
 
@@ -208,33 +205,32 @@ async def join(ctx):
     if txt_ch_and_guild_id:
         channel_id, channel_name = txt_ch_and_guild_id[ctx.message.guild.id]
     if "bot" not in str(ctx.channel):
-        await ctx.send(embed=generate_msg(ERROR_MSGS[3]))
-        return
+        return await ctx.send(embed=generate_msg(ERROR_MSGS[3]))
+
     elif (
         txt_ch_and_guild_id
         and ctx.message.guild.id in txt_ch_and_guild_id
         and channel_id != ctx.channel.id
     ):
-        await ctx.reply(
+        return await ctx.reply(
             embed=generate_msg(
                 f"{ERROR_MSGS[6]}\n\n**Note**: {ERROR_MSGS[4]} **#{channel_name}**"
             )
         )
-        return
+
     elif (
         discord.utils.get(client.voice_clients, guild=ctx.guild).is_playing()
         and channel_id is ctx.channel.id
     ):
-        await ctx.reply(embed=generate_msg(ERROR_MSGS[6]))
-        return
+        return await ctx.reply(embed=generate_msg(ERROR_MSGS[6]))
+
     if not ctx.author.voice:
-        await ctx.send(embed=generate_msg(ERROR_MSGS[1]))
-        return
+        return await ctx.send(embed=generate_msg(ERROR_MSGS[1]))
 
     txt_ch_and_guild_id[ctx.message.guild.id] = (ctx.channel.id, str(ctx.channel))
     channel = ctx.message.author.voice.channel
     await channel.connect()
-    await ctx.send(
+    return await ctx.send(
         embed=generate_msg(
             f"Joined 🔉**{channel}** via **#{str(ctx.channel)}**.\n\n**Note**: Song commands for this session will only be valid in mentioned text channel."
         )
@@ -246,22 +242,22 @@ async def leave(ctx):
     if txt_ch_and_guild_id:
         channel_id, channel_name = txt_ch_and_guild_id[ctx.message.guild.id]
     if "bot" not in str(ctx.channel):
-        await ctx.send(embed=generate_msg(ERROR_MSGS[3]))
-        return
+        return await ctx.send(embed=generate_msg(ERROR_MSGS[3]))
+
     elif channel_id != ctx.channel.id:
-        await ctx.reply(embed=generate_msg(f"{ERROR_MSGS[4]} **#{channel_name}**"))
-        return
+        return await ctx.reply(
+            embed=generate_msg(f"{ERROR_MSGS[4]} **#{channel_name}**")
+        )
 
     if not ctx.voice_client:
-        await ctx.send(embed=generate_msg(ERROR_MSGS[2]))
-        return
+        return await ctx.send(embed=generate_msg(ERROR_MSGS[2]))
 
     if not (
         ctx.author.voice.channel
         and ctx.author.voice.channel == ctx.voice_client.channel
     ):
-        await ctx.send(embed=generate_msg(ERROR_MSGS[5]))
-        return
+        return await ctx.send(embed=generate_msg(ERROR_MSGS[5]))
+
     if ctx.message.guild.id in txt_ch_and_guild_id:
         txt_ch_and_guild_id.pop(ctx.message.guild.id)
 
@@ -273,7 +269,7 @@ async def leave(ctx):
         titles.pop(ctx.channel.id)
 
     await ctx.guild.voice_client.disconnect()
-    await ctx.send(embed=generate_msg(f"Left **{channel}** voice channel."))
+    return await ctx.send(embed=generate_msg(f"Left **{channel}** voice channel."))
 
 
 @client.command(help="Pauses the current song")
@@ -281,33 +277,32 @@ async def pause(ctx):
     if txt_ch_and_guild_id:
         channel_id, channel_name = txt_ch_and_guild_id[ctx.message.guild.id]
     if "bot" not in str(ctx.channel):
-        await ctx.reply(embed=generate_msg(ERROR_MSGS[3]))
-        return
+        return await ctx.reply(embed=generate_msg(ERROR_MSGS[3]))
+
     elif channel_id != ctx.channel.id:
-        await ctx.reply(embed=generate_msg(f"{ERROR_MSGS[4]} **#{channel_name}**"))
-        return
+        return await ctx.reply(
+            embed=generate_msg(f"{ERROR_MSGS[4]} **#{channel_name}**")
+        )
 
     if not ctx.author.voice:
-        await ctx.reply(embed=generate_msg(ERROR_MSGS[1]))
-        return
+        return await ctx.reply(embed=generate_msg(ERROR_MSGS[1]))
 
     if not (
         ctx.author.voice.channel
         and ctx.author.voice.channel == ctx.voice_client.channel
     ):
-        await ctx.send(embed=generate_msg(ERROR_MSGS[5]))
-        return
+        return await ctx.send(embed=generate_msg(ERROR_MSGS[5]))
 
     voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
     if voice.is_playing():
         voice.pause()
-        await ctx.send(
+        return await ctx.send(
             embed=generate_msg(
                 f"Paused **{titles_on_song_command[ctx.channel.id][0]}**"
             )
         )
-        return
-    await ctx.send(embed=generate_msg("There is no song being played"))
+
+    return await ctx.send(embed=generate_msg("There is no song being played"))
 
 
 @client.command(aliases=["continue", "res"], help="Resumes the paused song")
@@ -315,38 +310,36 @@ async def play(ctx):
     if txt_ch_and_guild_id:
         channel_id, channel_name = txt_ch_and_guild_id[ctx.message.guild.id]
     if "bot" not in str(ctx.channel):
-        await ctx.reply(embed=generate_msg(ERROR_MSGS[3]))
-        return
+        return await ctx.reply(embed=generate_msg(ERROR_MSGS[3]))
+
     elif channel_id != ctx.channel.id:
-        await ctx.reply(embed=generate_msg(f"{ERROR_MSGS[4]} **#{channel_name}**"))
-        return
+        return await ctx.reply(
+            embed=generate_msg(f"{ERROR_MSGS[4]} **#{channel_name}**")
+        )
 
     if not ctx.voice_client:
-        await ctx.reply(embed=generate_msg(ERROR_MSGS[2]))
-        return
+        return await ctx.reply(embed=generate_msg(ERROR_MSGS[2]))
 
     if not ctx.author.voice:
-        await ctx.reply(embed=generate_msg(ERROR_MSGS[1]))
-        return
+        return await ctx.reply(embed=generate_msg(ERROR_MSGS[1]))
 
     if not (
         ctx.author.voice.channel
         and ctx.author.voice.channel == ctx.voice_client.channel
     ):
-        await ctx.send(embed=generate_msg(ERROR_MSGS[5]))
-        return
+        return await ctx.send(embed=generate_msg(ERROR_MSGS[5]))
 
     voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
 
     if voice.is_paused():
         voice.resume()
-        await ctx.send(
+        return await ctx.send(
             embed=generate_msg(
                 f"Resumed **{titles_on_song_command[ctx.channel.id][0]}**"
             )
         )
-        return
-    await ctx.send(embed=generate_msg("There is no audio currently playing"))
+
+    return await ctx.send(embed=generate_msg("There is no audio currently playing"))
 
 
 @client.command(aliases=["next"], help="Skip to the next song in your queue")
@@ -354,31 +347,29 @@ async def skip(ctx):
     if txt_ch_and_guild_id:
         channel_id, channel_name = txt_ch_and_guild_id[ctx.message.guild.id]
     if "bot" not in str(ctx.channel):
-        await ctx.reply(embed=ERROR_MSGS[3])
-        return
+        return await ctx.reply(embed=ERROR_MSGS[3])
+
     elif channel_id != ctx.channel.id:
-        await ctx.reply(embed=generate_msg(f"{ERROR_MSGS[4]} **#{channel_name}**"))
-        return
+        return await ctx.reply(
+            embed=generate_msg(f"{ERROR_MSGS[4]} **#{channel_name}**")
+        )
 
     if not ctx.voice_client:
-        await ctx.reply(embed=generate_msg(ERROR_MSGS[2]))
-        return
+        return await ctx.reply(embed=generate_msg(ERROR_MSGS[2]))
 
     if not ctx.author.voice:
-        await ctx.reply(embed=generate_msg(ERROR_MSGS[1]))
-        return
+        return await ctx.reply(embed=generate_msg(ERROR_MSGS[1]))
 
     if not (
         ctx.author.voice.channel
         and ctx.author.voice.channel == ctx.voice_client.channel
     ):
-        await ctx.send(embed=generate_msg(ERROR_MSGS[5]))
-        return
+        return await ctx.send(embed=generate_msg(ERROR_MSGS[5]))
 
     voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
     if voice.is_playing() or voice.is_paused():
-        voice.stop()
-        return
+        return voice.stop()
+
     await ctx.reply(embed=generate_msg("Can't skip because no song is playing"))
 
 
@@ -387,19 +378,20 @@ async def search(ctx, *args):
     if txt_ch_and_guild_id:
         channel_id, channel_name = txt_ch_and_guild_id[ctx.message.guild.id]
     if "bot" not in str(ctx.channel):
-        await ctx.send(embed=generate_msg(ERROR_MSGS[3]))
-        return
+        return await ctx.send(embed=generate_msg(ERROR_MSGS[3]))
+
     elif (
         txt_ch_and_guild_id
         and ctx.message.guild.id in txt_ch_and_guild_id
         and channel_id != ctx.channel.id
     ):
-        await ctx.reply(embed=generate_msg(f"{ERROR_MSGS[4]} **#{channel_name}**"))
-        return
+        return await ctx.reply(
+            embed=generate_msg(f"{ERROR_MSGS[4]} **#{channel_name}**")
+        )
 
     if not ctx.author.voice and not ctx.voice_client:
-        await ctx.send(embed=generate_msg(ERROR_MSGS[1]))
-        return
+        return await ctx.send(embed=generate_msg(ERROR_MSGS[1]))
+
     elif not ctx.voice_client and ctx.author.voice:
         channel = ctx.message.author.voice.channel
         await channel.connect()
@@ -461,8 +453,7 @@ async def search(ctx, *args):
 
             if not play_check.is_playing() and not play_check.is_paused():
                 add(ctx, newsong.title)
-                play_song(ctx, newsource, newsong.title, final_link)
-                return
+                return play_song(ctx, newsource, newsong.title, final_link)
 
             await ctx.send(embed=generate_msg(f"Added to queue: **{newsong.title}**"))
 
@@ -474,16 +465,15 @@ async def search(ctx, *args):
             )
             string = "\n".join(songs)
             if string:
-                await ctx.send(
+                return await ctx.send(
                     embed=generate_msg(title_msg="**Queued songs**:", msg=string)
                 )
-                return
 
-            await ctx.send(
+            return await ctx.send(
                 embed=generate_msg(title_msg=f"**Queued songs**:", msg="None")
             )
 
-        await ctx.send(embed=generate_msg("Cancelled search"))
+        return await ctx.send(embed=generate_msg("Cancelled search"))
 
 
 @client.command(help="Lets me play a song in your current voice channel")
@@ -491,20 +481,19 @@ async def song(ctx, *args):
     if txt_ch_and_guild_id and ctx.message.guild.id in txt_ch_and_guild_id:
         channel_id, channel_name = txt_ch_and_guild_id[ctx.message.guild.id]
     if "bot" not in str(ctx.channel):
-        await ctx.send(embed=generate_msg(ERROR_MSGS[3]))
-        return
+        return await ctx.send(embed=generate_msg(ERROR_MSGS[3]))
 
     elif (
         txt_ch_and_guild_id
         and ctx.message.guild.id in txt_ch_and_guild_id
         and channel_id != ctx.channel.id
     ):
-        await ctx.reply(embed=generate_msg(f"{ERROR_MSGS[4]} **#{channel_name}**"))
-        return
+        return await ctx.reply(
+            embed=generate_msg(f"{ERROR_MSGS[4]} **#{channel_name}**")
+        )
 
     if not ctx.author.voice and not ctx.voice_client:
-        await ctx.send(embed=generate_msg(ERROR_MSGS[1]))
-        return
+        return await ctx.send(embed=generate_msg(ERROR_MSGS[1]))
 
     if not ctx.voice_client and ctx.author.voice:
         channel = ctx.message.author.voice.channel
@@ -531,12 +520,12 @@ async def song(ctx, *args):
         play_check = discord.utils.get(client.voice_clients, guild=ctx.guild)
 
         if play_check.is_playing():
-            await ctx.send(
+            return await ctx.send(
                 embed=generate_msg(
                     "There is a song currently playing. To add a song to a queue, use the `;q` command. To skip to the next queued song, use the `;skip` command."
                 )
             )
-            return
+
         song, title, link = None, None, None
         if "https://open.spotify.com" in play_name:
             track_id = play_name[31 : play_name.index("?")]
@@ -566,23 +555,22 @@ async def q(ctx, *args):
     if txt_ch_and_guild_id and ctx.message.guild.id in txt_ch_and_guild_id:
         channel_id, channel_name = txt_ch_and_guild_id[ctx.message.guild.id]
     if "bot" not in str(ctx.channel):
-        await ctx.reply(embed=generate_msg(ERROR_MSGS[3]))
-        return
+        return await ctx.reply(embed=generate_msg(ERROR_MSGS[3]))
+
     elif (
         txt_ch_and_guild_id
         and ctx.message.guild.id in txt_ch_and_guild_id
         and channel_id != ctx.channel.id
     ):
-        await ctx.reply(embed=generate_msg(f"{ERROR_MSGS[4]} **#{channel_name}**"))
-        return
+        return await ctx.reply(
+            embed=generate_msg(f"{ERROR_MSGS[4]} **#{channel_name}**")
+        )
 
     if not ctx.voice_client:
-        await ctx.send(embed=generate_msg(ERROR_MSGS[2]))
-        return
+        return await ctx.send(embed=generate_msg(ERROR_MSGS[2]))
 
     if not ctx.author.voice:
-        await ctx.reply(embed=generate_msg(ERROR_MSGS[1]))
-        return
+        return await ctx.reply(embed=generate_msg(ERROR_MSGS[1]))
 
     q_name = " ".join(args)
     voice_status = discord.utils.get(client.voice_clients, guild=ctx.guild)
@@ -590,8 +578,8 @@ async def q(ctx, *args):
         txt_ch_and_guild_id[ctx.message.guild.id] = (ctx.channel.id, str(ctx.channel))
 
     if not len(titles) < 20:
-        await ctx.send(embed=generate_msg("Reached maximum queue limit"))
-        return
+        return await ctx.send(embed=generate_msg("Reached maximum queue limit"))
+
     queued_song, next_in_queue_title, link = None, None, None
     if "https://open.spotify.com" in q_name:
         track_id = q_name[31 : q_name.index("?")]
@@ -618,8 +606,7 @@ async def q(ctx, *args):
 
     if not voice_status.is_playing() and not voice_status.is_paused():
         titles[ctx.channel.id].pop(0)
-        play_song(ctx, queued_song, next_in_queue_title, link)
-        return
+        return play_song(ctx, queued_song, next_in_queue_title, link)
 
     await ctx.send(
         embed=generate_msg(
@@ -630,8 +617,7 @@ async def q(ctx, *args):
         f"• {titles[ctx.channel.id][i]}" for i in range(len(titles[ctx.channel.id]))
     )
     string = "\n".join(songs)
-    await ctx.send(embed=generate_msg(title_msg="**Queued songs**", msg=string))
-    return
+    return await ctx.send(embed=generate_msg(title_msg="**Queued songs**", msg=string))
 
 
 @client.command(aliases=["end", "quit"], help="Stops current song and clears queue")
@@ -639,30 +625,29 @@ async def stop(ctx):
     if txt_ch_and_guild_id and ctx.message.guild.id in txt_ch_and_guild_id:
         channel_id, channel_name = txt_ch_and_guild_id[ctx.message.guild.id]
     if "bot" not in str(ctx.channel):
-        await ctx.reply(embed=generate_msg(ERROR_MSGS[3]))
-        return
+        return await ctx.reply(embed=generate_msg(ERROR_MSGS[3]))
+
     elif (
         txt_ch_and_guild_id
         and ctx.message.guild.id in txt_ch_and_guild_id
         and channel_id != ctx.channel.id
     ):
-        await ctx.reply(embed=generate_msg(f"{ERROR_MSGS[4]} **#{channel_name}**"))
-        return
+        return await ctx.reply(
+            embed=generate_msg(f"{ERROR_MSGS[4]} **#{channel_name}**")
+        )
 
     if not ctx.voice_client:
-        await ctx.send(embed=generate_msg(ERROR_MSGS[2]))
-        return
+        return await ctx.send(embed=generate_msg(ERROR_MSGS[2]))
 
     if not ctx.author.voice:
-        await ctx.reply(embed=generate_msg(ERROR_MSGS[1]))
-        return
+        return await ctx.reply(embed=generate_msg(ERROR_MSGS[1]))
+
     voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
 
     if not voice.is_playing() and not voice.is_paused():
-        await ctx.send(
+        return await ctx.send(
             embed=generate_msg("Can't use command because no song is playing")
         )
-        return
 
     if ctx.channel.id in queues:
         queues[ctx.channel.id].clear()
@@ -672,7 +657,9 @@ async def stop(ctx):
         titles_on_song_command.pop(ctx.channel.id)
 
     voice.stop()
-    await ctx.send(embed=generate_msg("Current song stopped and all queues removed"))
+    return await ctx.send(
+        embed=generate_msg("Current song stopped and all queues removed")
+    )
 
 
 # @client.command() TODO clear command
@@ -686,22 +673,21 @@ async def rq(ctx):
     if txt_ch_and_guild_id and ctx.message.guild.id in txt_ch_and_guild_id:
         channel_id, channel_name = txt_ch_and_guild_id[ctx.message.guild.id]
     if "bot" not in str(ctx.channel):
-        await ctx.reply(embed=generate_msg(ERROR_MSGS[3]))
-        return
+        return await ctx.reply(embed=generate_msg(ERROR_MSGS[3]))
+
     elif channel_id != ctx.channel.id:
-        await ctx.reply(embed=generate_msg(f"{ERROR_MSGS[4]} **#{channel_name}**"))
-        return
+        return await ctx.reply(
+            embed=generate_msg(f"{ERROR_MSGS[4]} **#{channel_name}**")
+        )
 
     if not ctx.author.voice:
-        await ctx.reply(embed=generate_msg(ERROR_MSGS[1]))
-        return
+        return await ctx.reply(embed=generate_msg(ERROR_MSGS[1]))
 
     if not (
         ctx.author.voice.channel
         and ctx.author.voice.channel == ctx.voice_client.channel
     ):
-        await ctx.send(embed=generate_msg(ERROR_MSGS[5]))
-        return
+        return await ctx.send(embed=generate_msg(ERROR_MSGS[5]))
 
     if queues[ctx.channel.id] and titles[ctx.channel.id]:
         songs = list(
@@ -738,18 +724,17 @@ async def rq(ctx):
             )
             string = "\n".join(songs)
             if string:
-                await ctx.send(
+                return await ctx.send(
                     embed=generate_msg(title_msg="**Queued songs**:", msg=string)
                 )
-                return
-            await ctx.send(
+
+            return await ctx.send(
                 embed=generate_msg(title_msg="**Queued songs:**", msg="None")
             )
-            return
-        await ctx.send(embed=generate_msg(f"**No queue removed**"))
-        return
 
-    await ctx.reply(embed=generate_msg("**No more queues to remove**"))
+        return await ctx.send(embed=generate_msg(f"**No queue removed**"))
+
+    return await ctx.reply(embed=generate_msg("**No more queues to remove**"))
 
 
 @client.command(aliases=["list", "sq", "vq", "view"], help="Views queued songs")
