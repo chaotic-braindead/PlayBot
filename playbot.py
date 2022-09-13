@@ -202,7 +202,7 @@ async def helpme(ctx):
 
 @client.command(aliases=["start"], help="Lets me join your current voice channel")
 async def join(ctx):
-    if txt_ch_and_guild_id:
+    if txt_ch_and_guild_id and ctx.message.guild.id in txt_ch_and_guild_id:
         channel_id, channel_name = txt_ch_and_guild_id[ctx.message.guild.id]
     if "bot" not in str(ctx.channel):
         return await ctx.send(embed=generate_msg(ERROR_MSGS[3]))
@@ -213,28 +213,27 @@ async def join(ctx):
         and channel_id != ctx.channel.id
     ):
         return await ctx.reply(
-            embed=generate_msg(
-                f"{ERROR_MSGS[6]}\n\n**Note**: {ERROR_MSGS[4]} **#{channel_name}**"
-            )
+            embed=generate_msg(f"{ERROR_MSGS[4]} **#{channel_name}**")
         )
 
-    elif (
-        discord.utils.get(client.voice_clients, guild=ctx.guild).is_playing()
-        and channel_id is ctx.channel.id
-    ):
-        return await ctx.reply(embed=generate_msg(ERROR_MSGS[6]))
-
-    if not ctx.author.voice:
+    if not ctx.author.voice and not ctx.voice_client:
         return await ctx.send(embed=generate_msg(ERROR_MSGS[1]))
 
-    txt_ch_and_guild_id[ctx.message.guild.id] = (ctx.channel.id, str(ctx.channel))
-    channel = ctx.message.author.voice.channel
-    await channel.connect()
-    return await ctx.send(
-        embed=generate_msg(
-            f"Joined 🔉**{channel}** via **#{str(ctx.channel)}**.\n\n**Note**: Song commands for this session will only be valid in mentioned text channel."
+    if ctx.message.guild.id not in txt_ch_and_guild_id:
+        txt_ch_and_guild_id[ctx.message.guild.id] = (
+            ctx.channel.id,
+            str(ctx.channel),
         )
-    )
+
+    if not ctx.voice_client and ctx.author.voice:
+        channel = ctx.message.author.voice.channel
+
+        await channel.connect()
+        await ctx.send(
+            embed=generate_msg(
+                f"Joined 🔉**{channel}** via **#{str(ctx.channel)}**.\n\n**Note**: Song commands for this session will only be valid in mentioned text channel."
+            )
+        )
 
 
 @client.command(help="Lets me leave the voice channel")
@@ -588,9 +587,7 @@ async def q(ctx, *args):
         )
         spotify = spoti.SpotifyAPI(access_token)
         track_name = spotify.get(track_id)
-        queued_song, next_in_queue_title, link = search_for_link(
-            track_name, q_name
-        )
+        queued_song, next_in_queue_title, link = search_for_link(track_name, q_name)
 
     elif "/watch?v=" not in q_name:
         queued_song, next_in_queue_title, link = search_for_link(q_name)
