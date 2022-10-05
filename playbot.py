@@ -15,8 +15,8 @@ from lyrics_extractor import SongLyrics
 client = commands.Bot(command_prefix=";")
 queues = {}
 titles = {}
-titles_on_song_command = {}
 txt_ch_and_guild_id = {}
+current = {}
 
 FFMPEG_OPTIONS = {
     "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
@@ -51,24 +51,13 @@ def generate_msg(msg=None, title_msg=None, colr=discord.Colour.red()):
 
 
 def add(ctx, song_title, source=None):
+    global current
+    current[ctx.channel.id] = song_title
     if source:
-        if ctx.channel.id in queues and ctx.channel.id in titles:
-            queues[ctx.channel.id].append(source)
-            titles[ctx.channel.id].append(song_title)
+        if ctx.channel.id in queues:
+            queues[ctx.channel.id][song_title] = source
         else:
-            queues[ctx.channel.id] = [source]
-            titles[ctx.channel.id] = [song_title]
-
-        if ctx.channel.id in titles_on_song_command:
-            titles_on_song_command[ctx.channel.id].append(song_title)
-        else:
-            titles_on_song_command[ctx.channel.id] = [song_title]
-        return
-
-    if ctx.channel.id in titles_on_song_command:
-        titles_on_song_command[ctx.channel.id].insert(0, song_title)
-    else:
-        titles_on_song_command[ctx.channel.id] = [song_title]
+            queues[ctx.channel.id] = {song_title: source}
 
 
 def play_song(ctx, song_source, song_title, final_link):
@@ -105,39 +94,22 @@ def search_for_link(play_name, spoti_link=None):
 
 
 def check_queue(ctx, id):
+    channel = client.get_channel(ctx.channel.id)
     try:
         if queues[id]:
+            global current
             voice = ctx.guild.voice_client
             voice.stop()
-            source = queues[id].pop(0)
-            channel = client.get_channel(ctx.channel.id)
+            value = list(queues[id].keys())[0]
+            source = queues[id][value]
+            client.loop.create_task(
+                channel.send(embed=generate_msg(f"🎶 Now playing: **{value}** 🎶"))
+            )
             voice.play(source, after=lambda x=None: check_queue(ctx, ctx.channel.id))
-            if titles:
-                titles[ctx.channel.id].pop(0)
-                titles_on_song_command[ctx.channel.id].pop(0)
-                client.loop.create_task(
-                    channel.send(
-                        embed=generate_msg(
-                            f"🎶 Now playing: **{titles_on_song_command[ctx.channel.id][0]}** 🎶"
-                        )
-                    )
-                )
+            current[ctx.channel.id] = value
+            queues[id].pop(value)
     except KeyError:
-        try:
-            titles_on_song_command[ctx.channel.id].pop(0)
-            source = queues[id].pop(0)
-            channel = client.get_channel(ctx.channel.id)
-            embed2 = discord.Embed(
-                description=f"Song queue finished.", color=discord.Colour.red()
-            )
-            client.loop.create_task(channel.send(embed=embed2))
-
-        except (IndexError, KeyError):
-            channel = client.get_channel(ctx.channel.id)
-            embed3 = discord.Embed(
-                description=f"Song queue finished.", color=discord.Colour.red()
-            )
-            client.loop.create_task(channel.send(embed=embed3))
+        client.loop.create_task(channel.send(embed=generate_msg(f"Queue has stopped.")))
 
 
 @client.event
@@ -159,8 +131,20 @@ async def hello(ctx):
 
 @client.command(aliases=["current"], help="Shows the title of the current song playing")
 async def now(ctx):
+    if txt_ch_and_guild_id and ctx.message.guild.id in txt_ch_and_guild_id:
+        channel_id, channel_name = txt_ch_and_guild_id[ctx.message.guild.id]
+
     if "bot" not in str(ctx.channel):
         return await ctx.reply(embed=generate_msg(ERROR_MSGS[3]))
+
+    elif (
+        txt_ch_and_guild_id
+        and ctx.message.guild.id in txt_ch_and_guild_id
+        and channel_id != ctx.channel.id
+    ):
+        return await ctx.reply(
+            embed=generate_msg(f"{ERROR_MSGS[4]} **#{channel_name}**")
+        )
 
     if not ctx.author.voice:
         return await ctx.reply(embed=generate_msg(ERROR_MSGS[1]))
@@ -168,9 +152,7 @@ async def now(ctx):
     voice = discord.utils.get(ctx.bot.voice_clients, guild=ctx.guild)
     if voice.is_playing() or voice.is_paused():
         return await ctx.send(
-            embed=generate_msg(
-                f"🎶 Now playing: **{titles_on_song_command[ctx.channel.id][0]}** 🎶"
-            )
+            embed=generate_msg(f"🎶 Now playing: **{current[ctx.channel.id]}** 🎶")
         )
 
     return await ctx.send(embed=generate_msg(f"No song is playing"))
@@ -261,8 +243,6 @@ async def leave(ctx):
         txt_ch_and_guild_id.pop(ctx.message.guild.id)
 
     channel = ctx.message.author.voice.channel
-    if ctx.channel.id in titles_on_song_command:
-        titles_on_song_command.pop(ctx.channel.id)
 
     if ctx.channel.id in titles:
         titles.pop(ctx.channel.id)
@@ -296,9 +276,7 @@ async def pause(ctx):
     if voice.is_playing():
         voice.pause()
         return await ctx.send(
-            embed=generate_msg(
-                f"Paused **{titles_on_song_command[ctx.channel.id][0]}**"
-            )
+            embed=generate_msg(f"Paused **{current[ctx.channel.id]}**")
         )
 
     return await ctx.send(embed=generate_msg("There is no song being played"))
@@ -333,9 +311,7 @@ async def play(ctx):
     if voice.is_paused():
         voice.resume()
         return await ctx.send(
-            embed=generate_msg(
-                f"Resumed **{titles_on_song_command[ctx.channel.id][0]}**"
-            )
+            embed=generate_msg(f"Resumed **{current[ctx.channel.id]}**")
         )
 
     return await ctx.send(embed=generate_msg("There is no audio currently playing"))
@@ -650,8 +626,6 @@ async def stop(ctx):
         queues[ctx.channel.id].clear()
     if ctx.channel.id in titles:
         titles.pop(ctx.channel.id)
-    if ctx.channel.id in titles_on_song_command:
-        titles_on_song_command.pop(ctx.channel.id)
 
     voice.stop()
     return await ctx.send(
@@ -686,11 +660,9 @@ async def rq(ctx):
     ):
         return await ctx.send(embed=generate_msg(ERROR_MSGS[5]))
 
-    if queues[ctx.channel.id] and titles[ctx.channel.id]:
-        songs = list(
-            f"**{i+1}** : {titles[ctx.channel.id][i]}"
-            for i in range(len(titles[ctx.channel.id]))
-        )
+    if queues[ctx.channel.id]:
+        queue_list = list(queues[ctx.channel.id].keys())
+        songs = list(f"**{i+1}** : {queue_list[i]}" for i in range(len(queue_list)))
         string = "\n\n".join(songs)
         await ctx.reply(
             embed=generate_msg(
@@ -706,19 +678,12 @@ async def rq(ctx):
             )
 
         msg = await client.wait_for("message", check=check)
-        if int(msg.content) > 0 and int(msg.content) <= len(songs):
-            queues[ctx.channel.id].pop(int(msg.content) - 1)
-            await ctx.send(
-                embed=generate_msg(
-                    f"Removed **{titles[ctx.channel.id][int(msg.content)-1]}** from queue"
-                )
-            )
-            titles[ctx.channel.id].pop(int(msg.content) - 1)
-            titles_on_song_command[ctx.channel.id].pop(int(msg.content))
-            songs = list(
-                f"• {titles[ctx.channel.id][i]}"
-                for i in range(len(titles[ctx.channel.id]))
-            )
+        index = int(msg.content)
+        if index > 0 and index <= len(songs):
+            chosen = queue_list[index - 1]
+            await ctx.send(embed=generate_msg(f"Removed **{chosen}** from queue"))
+            queues[ctx.channel.id].pop(chosen)
+            songs = list(f"• {queue_list[i]}" for i in range(len(queue_list)))
             string = "\n".join(songs)
             if string:
                 return await ctx.send(
@@ -819,14 +784,12 @@ async def lyrics(ctx):
     extract_lyrics = SongLyrics(
         os.environ.get("GCS_API_KEY"), os.environ.get("GCS_ENGINE_ID")
     )
-    lyrics = extract_lyrics.get_lyrics(titles_on_song_command[ctx.channel.id][0])
+    lyrics = extract_lyrics.get_lyrics(current[ctx.channel.id])
     lyr = lyrics["lyrics"].replace("\\n", "\n")
 
-    if len(lyr) + len(titles_on_song_command[ctx.channel.id][0]) <= 2000:
+    if len(lyr) + len(current[ctx.channel.id]) <= 2000:
         return await ctx.send(
-            embed=generate_msg(
-                f"**{titles_on_song_command[ctx.channel.id][0]}**\n{lyr}"
-            )
+            embed=generate_msg(f"**{current[ctx.channel.id]}**\n{lyr}")
         )
 
     lyr1 = lyr[: len(lyr) // 2]
@@ -835,17 +798,11 @@ async def lyrics(ctx):
     if len(lyr2) > 2000:
         lyr3 = lyr2[: len(lyr2) // 2]
         lyr4 = lyr2[len(lyr2) // 2 :]
-        await ctx.send(
-            embed=generate_msg(
-                f"**{titles_on_song_command[ctx.channel.id][0]}**\n{lyr}"
-            )
-        )
+        await ctx.send(embed=generate_msg(f"**{current[ctx.channel.id]}**\n{lyr}"))
         await ctx.send(embed=generate_msg(lyr3))
         return await ctx.send(embed=generate_msg(lyr4))
 
-    await ctx.send(
-        embed=generate_msg(f"**{titles_on_song_command[ctx.channel.id][0]}**\n{lyr1}")
-    )
+    await ctx.send(embed=generate_msg(f"**{current[ctx.channel.id]}**\n{lyr1}"))
     return await ctx.send(embed=generate_msg(f"{lyr2}"))
 
 
