@@ -112,18 +112,17 @@ def show_queue(ctx):
 def check_queue(ctx, id):
     channel = client.get_channel(ctx.channel.id)
     try:
-        if queues[id]:
-            global current
-            voice = ctx.guild.voice_client
-            voice.stop()
-            value = list(queues[id].keys())[0]
-            source = queues[id][value]
-            client.loop.create_task(
-                channel.send(embed=generate_msg(f"🎶 Now playing: **{value}** 🎶"))
-            )
-            voice.play(source, after=lambda x=None: check_queue(ctx, ctx.channel.id))
-            current[ctx.channel.id] = value
-            queues[id].pop(value)
+        global current
+        voice = ctx.guild.voice_client
+        voice.stop()
+        value = list(queues[id].keys())[0]
+        source = queues[id][value]
+        client.loop.create_task(
+            channel.send(embed=generate_msg(f"🎶 Now playing: **{value}** 🎶"))
+        )
+        voice.play(source, after=lambda x=None: check_queue(ctx, ctx.channel.id))
+        current[ctx.channel.id] = value
+        queues[id].pop(value)
     except KeyError:
         client.loop.create_task(channel.send(embed=generate_msg(f"Queue has stopped.")))
 
