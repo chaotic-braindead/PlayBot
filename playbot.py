@@ -14,7 +14,6 @@ from lyrics_extractor import SongLyrics
 
 client = commands.Bot(command_prefix=";")
 queues = {}
-titles = {}
 txt_ch_and_guild_id = {}
 current = {}
 
@@ -52,12 +51,13 @@ def generate_msg(msg=None, title_msg=None, colr=discord.Colour.red()):
 
 def add(ctx, song_title, source=None):
     global current
-    current[ctx.channel.id] = song_title
     if source:
         if ctx.channel.id in queues:
             queues[ctx.channel.id][song_title] = source
         else:
             queues[ctx.channel.id] = {song_title: source}
+    else:
+        current[ctx.channel.id] = song_title
 
 
 def play_song(ctx, song_source, song_title, final_link):
@@ -80,9 +80,10 @@ def search_for_link(play_name, spoti_link=None):
     )
     i = 0
     p = pafy.new(results[i])
-    if p.length >= 600:
+    while p.length > 900:
         i += 1
-    p = pafy.new(results[i])
+        p = pafy.new(results[i])
+
     audio = p.getbestaudio()
     queued_song = FFmpegPCMAudio(audio.url, **FFMPEG_OPTIONS)
     next_in_queue_title = p.title
@@ -91,6 +92,21 @@ def search_for_link(play_name, spoti_link=None):
         next_in_queue_title = play_name
         link = spoti_link
     return (queued_song, next_in_queue_title, link)
+
+
+def show_queue(ctx):
+    queue_list = list(queues[ctx.channel.id].keys())
+    channel = client.get_channel(ctx.channel.id)
+    songs = list(f"• {queue_list[i]}" for i in range(len(queue_list)))
+    string = "\n".join(songs)
+    if string:
+        client.loop.create_task(
+            channel.send(embed=generate_msg(title_msg="**Queued songs**:", msg=string))
+        )
+    else:
+        client.loop.create_task(
+            channel.send(embed=generate_msg(title_msg=f"**Queued songs**:", msg="None"))
+        )
 
 
 def check_queue(ctx, id):
@@ -244,8 +260,8 @@ async def leave(ctx):
 
     channel = ctx.message.author.voice.channel
 
-    if ctx.channel.id in titles:
-        titles.pop(ctx.channel.id)
+    if ctx.channel.id in queues:
+        queues.pop(ctx.channel.id)
 
     await ctx.guild.voice_client.disconnect()
     return await ctx.send(embed=generate_msg(f"Left **{channel}** voice channel."))
@@ -433,20 +449,7 @@ async def search(ctx, *args):
             await ctx.send(embed=generate_msg(f"Added to queue: **{newsong.title}**"))
 
             add(ctx, newsong.title, newsource)
-
-            songs = list(
-                f"• {titles[ctx.channel.id][i]}"
-                for i in range(len(titles[ctx.channel.id]))
-            )
-            string = "\n".join(songs)
-            if string:
-                return await ctx.send(
-                    embed=generate_msg(title_msg="**Queued songs**:", msg=string)
-                )
-
-            return await ctx.send(
-                embed=generate_msg(title_msg=f"**Queued songs**:", msg="None")
-            )
+            show_queue(ctx)
 
         return await ctx.send(embed=generate_msg("Cancelled search"))
 
@@ -552,9 +555,6 @@ async def q(ctx, *args):
     if ctx.message.guild.id not in txt_ch_and_guild_id:
         txt_ch_and_guild_id[ctx.message.guild.id] = (ctx.channel.id, str(ctx.channel))
 
-    if not len(titles) < 20:
-        return await ctx.send(embed=generate_msg("Reached maximum queue limit"))
-
     queued_song, next_in_queue_title, link = None, None, None
     if "https://open.spotify.com" in q_name:
         track_id = q_name[31 : q_name.index("?")]
@@ -578,7 +578,7 @@ async def q(ctx, *args):
     add(ctx, next_in_queue_title, queued_song)
 
     if not voice_status.is_playing() and not voice_status.is_paused():
-        titles[ctx.channel.id].pop(0)
+        queues[ctx.channel.id].pop(next_in_queue_title)
         return play_song(ctx, queued_song, next_in_queue_title, link)
 
     await ctx.send(
@@ -586,11 +586,7 @@ async def q(ctx, *args):
             f"Added to queue: **{next_in_queue_title}**\n{link}",
         )
     )
-    songs = list(
-        f"• {titles[ctx.channel.id][i]}" for i in range(len(titles[ctx.channel.id]))
-    )
-    string = "\n".join(songs)
-    return await ctx.send(embed=generate_msg(title_msg="**Queued songs**", msg=string))
+    show_queue(ctx)
 
 
 @client.command(aliases=["end", "quit"], help="Stops current song and clears queue")
@@ -624,8 +620,6 @@ async def stop(ctx):
 
     if ctx.channel.id in queues:
         queues[ctx.channel.id].clear()
-    if ctx.channel.id in titles:
-        titles.pop(ctx.channel.id)
 
     voice.stop()
     return await ctx.send(
@@ -683,16 +677,8 @@ async def rq(ctx):
             chosen = queue_list[index - 1]
             await ctx.send(embed=generate_msg(f"Removed **{chosen}** from queue"))
             queues[ctx.channel.id].pop(chosen)
-            songs = list(f"• {queue_list[i]}" for i in range(len(queue_list)))
-            string = "\n".join(songs)
-            if string:
-                return await ctx.send(
-                    embed=generate_msg(title_msg="**Queued songs**:", msg=string)
-                )
 
-            return await ctx.send(
-                embed=generate_msg(title_msg="**Queued songs:**", msg="None")
-            )
+            show_queue(ctx)
 
         return await ctx.send(embed=generate_msg(f"**No queue removed**"))
 
@@ -727,24 +713,17 @@ async def qs(ctx):
     ):
         return await ctx.send(embed=generate_msg(ERROR_MSGS[5]))
 
-    try:
-        songs = list(
-            f"• {titles[ctx.channel.id][i]}" for i in range(len(titles[ctx.channel.id]))
-        )
-        string = "\n".join(songs)
-        if string:
-            return await ctx.send(
-                embed=generate_msg(title_msg="**Queued songs**:", msg=string)
-            )
-
+    queue_list = list(queues[ctx.channel.id].keys())
+    songs = list(f"• {queue_list[i]}" for i in range(len(queue_list)))
+    string = "\n".join(songs)
+    if string:
         return await ctx.send(
-            embed=generate_msg(title_msg=f"**Queued songs**:", msg="None")
+            embed=generate_msg(title_msg="**Queued songs**:", msg=string)
         )
 
-    except:
-        return await ctx.send(
-            embed=generate_msg(title_msg=f"**Queued songs**:", msg="None")
-        )
+    return await ctx.send(
+        embed=generate_msg(title_msg=f"**Queued songs**:", msg="None")
+    )
 
 
 @client.command()
