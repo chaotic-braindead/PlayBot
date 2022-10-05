@@ -72,25 +72,26 @@ def play_song(ctx, song_source, song_title, final_link):
 
 
 def search_for_link(play_name, spoti_link=None):
-    query = urllib.parse.urlencode({"search_query": play_name + "audio"})
-    html = urllib.request.urlopen("https://www.youtube.com/results?" + query)
-    results = re.findall(
-        r"url\"\:\"\/watch\?v\=(.*?(?=\"))",
-        html.read().decode(),
-    )
-    i = 0
-    p = pafy.new(results[i])
-    while p.length > 900:
-        i += 1
-        p = pafy.new(results[i])
-
-    audio = p.getbestaudio()
-    queued_song = FFmpegPCMAudio(audio.url, **FFMPEG_OPTIONS)
-    next_in_queue_title = p.title
-    link = f"https://www.youtube.com/watch?v={results[i]}"
+    link = None
     if spoti_link:
-        next_in_queue_title = play_name
         link = spoti_link
+    else:
+        query = urllib.parse.urlencode({"search_query": play_name + "audio"})
+        html = urllib.request.urlopen("https://www.youtube.com/results?" + query)
+        results = re.findall(
+            r"url\"\:\"\/watch\?v\=(.*?(?=\"))",
+            html.read().decode(),
+        )
+        i = 0
+        p = pafy.new(results[i])
+        while p.length > 900:
+            i += 1
+            p = pafy.new(results[i])
+
+        audio = p.getbestaudio()
+        queued_song = FFmpegPCMAudio(audio.url, **FFMPEG_OPTIONS)
+        next_in_queue_title = p.title
+        link = f"https://www.youtube.com/watch?v={results[i]}"
     return (queued_song, next_in_queue_title, link)
 
 
