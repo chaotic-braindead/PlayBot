@@ -1,14 +1,14 @@
 import discord
-import urllib
+import os
+import pafy
+import spoti
 import re
+import urllib
 import urllib.parse
 import urllib.request
-from discord.ext import commands
 from discord import FFmpegPCMAudio
-import pafy
-import os
-import spoti
-from msg_gen import *
+from discord.ext import commands
+from general_functions import generate_msg
 from lyrics_extractor import SongLyrics
 
 
@@ -33,11 +33,11 @@ class Music(commands.Cog):
             6: "I am already in a voice channel.",
         }
         self.__SPOTIFY_CLIENT_ID = os.environ.get("PLAYBOT_SPOTI_ID")
-        self.__SPOTIFY_CLIENT_SECRET = os.environ.get("PLAYBOY_SPOTI_SECRET")
+        self.__SPOTIFY_CLIENT_SECRET = os.environ.get("PLAYBOT_SPOTI_SECRET")
 
     def search_song(self, query, spoti_link=None):
-        query = urllib.parse.urlencode({"search_query": query + "audio"})
-        html = urllib.request.urlopen("https://www.youtube.com/results?" + query)
+        search = urllib.parse.urlencode({"search_query": query + "audio"})
+        html = urllib.request.urlopen("https://www.youtube.com/results?" + search)
         results = re.findall(
             r"url\"\:\"\/watch\?v\=(.*?(?=\"))",
             html.read().decode(),
@@ -69,17 +69,19 @@ class Music(commands.Cog):
     def play_song(self, ctx, song_source, song_title, final_link):
         voice = ctx.guild.voice_client
         channel = self.bot.get_channel(ctx.channel.id)
+
         self.bot.loop.create_task(
             channel.send(
                 embed=generate_msg(f"🎶 Now playing: **{song_title}** 🎶\n{final_link}")
             )
         )
-        voice.play(song_source, after=lambda x: self.check_queue(ctx, ctx.channel.id))
+        voice.play(
+            song_source, after=lambda x=None: self.check_queue(ctx, ctx.channel.id)
+        )
 
     def check_queue(self, ctx, id):
         channel = self.bot.get_channel(ctx.channel.id)
         try:
-            global current
             voice = ctx.guild.voice_client
             voice.stop()
             value = list(self.queues[id].keys())[0]
@@ -90,7 +92,7 @@ class Music(commands.Cog):
             voice.play(
                 source, after=lambda x=None: self.check_queue(ctx, ctx.channel.id)
             )
-            current[ctx.channel.id] = value
+            self.current[ctx.channel.id] = value
             self.queues[id].pop(value)
         except KeyError:
             self.bot.loop.create_task(
@@ -213,7 +215,7 @@ class Music(commands.Cog):
         if voice.is_paused():
             voice.resume()
             return await ctx.send(
-                embed=generate_msg(f"Resumed **{current[ctx.channel.id]}**")
+                embed=generate_msg(f"Resumed **{self.current[ctx.channel.id]}**")
             )
 
         return await ctx.send(embed=generate_msg("There is no audio currently playing"))
@@ -243,7 +245,7 @@ class Music(commands.Cog):
         if voice.is_playing():
             voice.pause()
             return await ctx.send(
-                embed=generate_msg(f"Paused **{current[ctx.channel.id]}**")
+                embed=generate_msg(f"Paused **{self.current[ctx.channel.id]}**")
             )
 
         return await ctx.send(embed=generate_msg("There is no song being played"))
@@ -374,12 +376,14 @@ class Music(commands.Cog):
                 )
 
             song, title, link = None, None, None
+
             if "https://open.spotify.com" in play_name:
                 track_id = play_name[31 : play_name.index("?")]
 
                 access_token = spoti.SpotifyAPI.extract_access_token(
                     self.__SPOTIFY_CLIENT_ID, self.__SPOTIFY_CLIENT_SECRET
                 )
+
                 spotify = spoti.SpotifyAPI(access_token)
                 track_name = spotify.get(track_id)
                 song, title, link = self.search_song(track_name, play_name)
@@ -553,7 +557,7 @@ class Music(commands.Cog):
                 )
 
                 self.add_to_queue(ctx, newsong.title, newsource)
-                self.show_queue(ctx)
+                return self.show_queue(ctx)
 
             return await ctx.send(embed=generate_msg("Cancelled search"))
 
@@ -585,7 +589,9 @@ class Music(commands.Cog):
         voice = discord.utils.get(ctx.bot.voice_clients, guild=ctx.guild)
         if voice.is_playing() or voice.is_paused():
             return await ctx.send(
-                embed=generate_msg(f"🎶 Now playing: **{current[ctx.channel.id]}** 🎶")
+                embed=generate_msg(
+                    f"🎶 Now playing: **{self.current[ctx.channel.id]}** 🎶"
+                )
             )
 
         return await ctx.send(embed=generate_msg(f"No song is playing"))
@@ -640,7 +646,7 @@ class Music(commands.Cog):
                 await ctx.send(embed=generate_msg(f"Removed **{chosen}** from queue"))
                 self.queues[ctx.channel.id].pop(chosen)
 
-                self.show_queue(ctx)
+                return self.show_queue(ctx)
 
             return await ctx.send(embed=generate_msg(f"**No queue removed**"))
 
@@ -726,12 +732,13 @@ class Music(commands.Cog):
         extract_lyrics = SongLyrics(
             os.environ.get("GCS_API_KEY"), os.environ.get("GCS_ENGINE_ID")
         )
-        lyrics = extract_lyrics.get_lyrics(current[ctx.channel.id])
+        lyrics = extract_lyrics.get_lyrics(self.current[ctx.channel.id])
         lyr = lyrics["lyrics"].replace("\\n", "\n")
+        print(lyr)
 
-        if len(lyr) + len(current[ctx.channel.id]) <= 2000:
+        if len(lyr) + len(self.current[ctx.channel.id]) <= 2000:
             return await ctx.send(
-                embed=generate_msg(f"**{current[ctx.channel.id]}**\n{lyr}")
+                embed=generate_msg(f"**{self.current[ctx.channel.id]}**\n{lyr}")
             )
 
         lyr1 = lyr[: len(lyr) // 2]
@@ -740,16 +747,20 @@ class Music(commands.Cog):
         if len(lyr2) > 2000:
             lyr3 = lyr2[: len(lyr2) // 2]
             lyr4 = lyr2[len(lyr2) // 2 :]
-            await ctx.send(embed=generate_msg(f"**{current[ctx.channel.id]}**\n{lyr}"))
+            await ctx.send(
+                embed=generate_msg(f"**{self.current[ctx.channel.id]}**\n{lyr}")
+            )
             await ctx.send(embed=generate_msg(lyr3))
             return await ctx.send(embed=generate_msg(lyr4))
 
-        await ctx.send(embed=generate_msg(f"**{current[ctx.channel.id]}**\n{lyr1}"))
+        await ctx.send(
+            embed=generate_msg(f"**{self.current[ctx.channel.id]}**\n{lyr1}")
+        )
         return await ctx.send(embed=generate_msg(f"{lyr2}"))
 
     @lyrics.error
-    async def info_error(ctx, error):
-        if isinstance(error, commands.CommandInvokeError):
+    async def info_error(self, ctx, error):
+        if isinstance(error, commands.errors.CommandInvokeError):
             return await ctx.send(
                 embed=generate_msg("Lyrics are currently unavailable")
             )
