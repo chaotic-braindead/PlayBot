@@ -1,11 +1,12 @@
 import discord
+import time
 import os
-import pafy
 import spoti
 import re
 import urllib
 import urllib.parse
 import urllib.request
+import youtube_dl
 from discord import FFmpegPCMAudio
 from discord.ext import commands
 from general_functions import generate_msg
@@ -42,19 +43,23 @@ class Music(commands.Cog):
             r"url\"\:\"\/watch\?v\=(.*?(?=\"))",
             html.read().decode(),
         )
-        i = 0
-        p = pafy.new(results[i])
-        while p.length > 900:
-            i += 1
-            p = pafy.new(results[i])
+        audio = None
+        next_in_queue_title = None
+        with youtube_dl.YoutubeDL({'format': 'bestaudio'}) as ydl:
+            info = ydl.extract_info("https://www.youtube.com/watch?v=" + results[0], download=False)
+            audio = info['formats'][0]['url']
+            next_in_queue_title = info['title']
 
-        audio = p.getbestaudio()
-        queued_song = FFmpegPCMAudio(audio.url, **self.FFMPEG_OPTIONS)
-        next_in_queue_title = p.title
-        link = f"https://www.youtube.com/watch?v={results[i]}"
+        if(audio is None):
+            return
+        
+        queued_song = FFmpegPCMAudio(audio, **self.FFMPEG_OPTIONS)
+        link = f"https://www.youtube.com/watch?v={results[0]}"
+        
         if spoti_link:
             next_in_queue_title = query
             link = spoti_link
+        
         return (queued_song, next_in_queue_title, link)
 
     def add_to_queue(self, ctx, song_title, source=None):
@@ -345,13 +350,7 @@ class Music(commands.Cog):
             return await ctx.send(embed=generate_msg(self.ERROR_MSGS[1]))
 
         if not ctx.voice_client and ctx.author.voice:
-            channel = ctx.message.author.voice.channel
-            await channel.connect()
-            await ctx.send(
-                embed=generate_msg(
-                    f"Joined 🔉**{channel}** via **#{str(ctx.channel)}**.\n\n**Note**: Song commands for this session will only be valid in mentioned text channel."
-                )
-            )
+            await self.join(ctx)
 
         if (
             not ctx.voice_client
@@ -365,7 +364,7 @@ class Music(commands.Cog):
                     ctx.channel.id,
                     str(ctx.channel),
                 )
-
+            print(play_name)
             play_check = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)
 
             if play_check.is_playing():
@@ -392,11 +391,14 @@ class Music(commands.Cog):
                 song, title, link = self.search_song(play_name)
 
             elif "https://www.youtube.com/" in play_name:
-                yt_link = pafy.new(play_name)
-                audio = yt_link.getbestaudio()
-                song = FFmpegPCMAudio(audio.url, **self.FFMPEG_OPTIONS)
-                title = yt_link.title
-
+                audio = None
+                with youtube_dl.YoutubeDL({'format': 'bestaudio'}) as ydl:
+                    info = ydl.extract_info(play_name, download=False)
+                    audio = info['formats'][0]['url']
+                    title = info['title']
+                song = FFmpegPCMAudio(audio, **self.FFMPEG_OPTIONS)
+                link = play_name
+            
             self.add_to_queue(ctx, title)
             self.play_song(ctx, song, title, link)
 
@@ -450,10 +452,13 @@ class Music(commands.Cog):
 
         elif "/watch?v=" in q_name:
             link = q_name
-            yt_new_queue = pafy.new(link)
-            yt_audio_queue = yt_new_queue.getbestaudio()
-            queued_song = FFmpegPCMAudio(yt_audio_queue.url, **self.FFMPEG_OPTIONS)
-            next_in_queue_title = yt_new_queue.title
+            next_in_queue_title = None
+            with youtube_dl.YoutubeDL({'format': 'bestaudio'}) as ydl:
+                info = ydl.extract_info(q_name, download=False)
+                yt_audio_queue = info['formats'][0]['url']
+                next_in_queue_title = info['title']
+                
+            queued_song = FFmpegPCMAudio(yt_audio_queue, **self.FFMPEG_OPTIONS)
 
         self.add_to_queue(ctx, next_in_queue_title, queued_song)
 
@@ -516,15 +521,24 @@ class Music(commands.Cog):
             search_resultsyt = re.findall(
                 r"url\"\:\"\/watch\?v\=(.*?(?=\"))", html_contentyt.read().decode()
             )
+
+            
             list1 = []
-            for i in range(10):
-                try:
-                    newsong = pafy.new(search_resultsyt[i])
-                    list1.append(
-                        f"**{i+1}** : {newsong.title} **[{newsong.duration}]**"
-                    )
-                except ValueError:
-                    break
+            links = []
+            with youtube_dl.YoutubeDL({'format': 'bestaudio'}) as ydl:
+                offset = 0
+                for i in range(10):
+                    info = ydl.extract_info(f"https://www.youtube.com/watch?v={search_resultsyt[i]}", download=False)
+                    title = info['title']
+                    duration = info['duration']
+                    if(info['id'] not in links):
+                        list1.append(
+                            f"**{i+1-offset}** : {title} **[{time.strftime('%H:%M:%S', time.gmtime(duration))}]**"
+                        )
+                        links.append(info['id'])
+                    else:
+                        offset += 1
+                            
 
             results = "\n\n".join(list1)
 
@@ -543,20 +557,24 @@ class Music(commands.Cog):
 
             msg = await self.bot.wait_for("message", check=check)
             if int(msg.content) > 0 and int(msg.content) <= len(list1):
-                newsong = pafy.new(search_resultsyt[int(msg.content) - 1])
-                audio = newsong.getbestaudio()
-                newsource = FFmpegPCMAudio(audio.url, **self.FFMPEG_OPTIONS)
-                final_link = f"https://www.youtube.com/watch?v={search_resultsyt[i]}"
+                with youtube_dl.YoutubeDL({'format': 'bestaudio'}) as ydl:
+                    info = ydl.extract_info(f"https://www.youtube.com/watch?v={links[int(msg.content) - 1]}", download=False)
+                    title = info['title']
+                    duration = info['duration']
+                    audio = info['formats'][0]['url']
+                    
+                newsource = FFmpegPCMAudio(audio, **self.FFMPEG_OPTIONS)
+                final_link = f"https://www.youtube.com/watch?v={links[int(msg.content) - 1]}"
 
                 if not play_check.is_playing() and not play_check.is_paused():
-                    self.add_to_queue(ctx, newsong.title)
-                    return self.play_song(ctx, newsource, newsong.title, final_link)
+                    self.add_to_queue(ctx, title)
+                    return self.play_song(ctx, newsource, title, final_link)
 
                 await ctx.send(
-                    embed=generate_msg(f"Added to queue: **{newsong.title}**")
+                    embed=generate_msg(f"Added to queue: **{title}**")
                 )
 
-                self.add_to_queue(ctx, newsong.title, newsource)
+                self.add_to_queue(ctx, title, newsource)
                 return self.show_queue(ctx)
 
             return await ctx.send(embed=generate_msg("Cancelled search"))
