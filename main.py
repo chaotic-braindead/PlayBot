@@ -5,20 +5,18 @@ from general_functions import General
 from music_functions import Music
 from general_functions import generate_msg
 
-client = commands.Bot(command_prefix=";")
+client = commands.Bot(command_prefix=";", intents=discord.Intents.all())
 KEY_WORDS = {
     "good bot": "Why thank you,",
     "bad bot": "I'm sorry. I'll do better next time,",
 }
 
-client.add_cog(General(client))
-client.add_cog(Music(client))
-
-
 @client.event
 async def on_ready():
+    await client.add_cog(General(client))
+    await client.add_cog(Music(client))
     await client.change_presence(
-        status=discord.Status.idle, activity=discord.Game(";helpme | @raffy")
+        status=discord.Status.online, activity=discord.Activity(type=discord.ActivityType.listening, name=";help | raffy#0200")
     )
     print(f"Logged in as {client.user}")
 

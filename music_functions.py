@@ -35,6 +35,7 @@ class Music(commands.Cog):
         }
         self.__SPOTIFY_CLIENT_ID = os.environ.get("PLAYBOT_SPOTI_ID")
         self.__SPOTIFY_CLIENT_SECRET = os.environ.get("PLAYBOT_SPOTI_SECRET")
+        self.__SPOTIFY_ACCESS_TOKEN = None
 
     def search_song(self, query, spoti_link=None):
         search = urllib.parse.urlencode({"search_query": query + "audio"})
@@ -45,6 +46,7 @@ class Music(commands.Cog):
         )
         audio = None
         next_in_queue_title = None
+        
         with youtube_dl.YoutubeDL({'format': 'bestaudio'}) as ydl:
             info = ydl.extract_info("https://www.youtube.com/watch?v=" + results[0], download=False)
             audio = info['formats'][0]['url']
@@ -149,10 +151,14 @@ class Music(commands.Cog):
                 ctx.channel.id,
                 str(ctx.channel),
             )
-        if not ctx.voice_client and ctx.author.voice:
-            channel = ctx.message.author.voice.channel
+        
+        print(self.txt_ch_and_guild_id)
 
+        if not bool(ctx.voice_client) and bool(ctx.author.voice):
+            channel = ctx.message.author.voice.channel
+            print(ctx.message.author.voice.channel)
             await channel.connect()
+            
             await ctx.send(
                 embed=generate_msg(
                     f"Joined 🔉**{channel}** via **#{str(ctx.channel)}**.\n\n**Note**: Song commands for this session will only be valid in mentioned text channel."
@@ -187,8 +193,8 @@ class Music(commands.Cog):
 
         if ctx.channel.id in self.queues:
             self.queues.pop(ctx.channel.id)
-
-        await ctx.guild.voice_client.disconnect()
+        
+        await ctx.voice_client.disconnect()
         return await ctx.send(embed=generate_msg(f"Left **{channel}** voice channel."))
 
     @commands.command(aliases=["continue", "res"], help="Resumes the paused song")
@@ -364,7 +370,7 @@ class Music(commands.Cog):
                     ctx.channel.id,
                     str(ctx.channel),
                 )
-            print(play_name)
+           
             play_check = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)
 
             if play_check.is_playing():
@@ -378,12 +384,12 @@ class Music(commands.Cog):
 
             if "https://open.spotify.com" in play_name:
                 track_id = play_name[31 : play_name.index("?")]
+                if(self.__SPOTIFY_ACCESS_TOKEN is None):
+                    self.__SPOTIFY_ACCESS_TOKEN = spoti.SpotifyAPI.extract_access_token(
+                        self.__SPOTIFY_CLIENT_ID, self.__SPOTIFY_CLIENT_SECRET
+                    )
 
-                access_token = spoti.SpotifyAPI.extract_access_token(
-                    self.__SPOTIFY_CLIENT_ID, self.__SPOTIFY_CLIENT_SECRET
-                )
-
-                spotify = spoti.SpotifyAPI(access_token)
+                spotify = spoti.SpotifyAPI(self.__SPOTIFY_ACCESS_TOKEN)
                 track_name = spotify.get(track_id)
                 song, title, link = self.search_song(track_name, play_name)
 
@@ -402,7 +408,7 @@ class Music(commands.Cog):
             self.add_to_queue(ctx, title)
             self.play_song(ctx, song, title, link)
 
-    @commands.command(aliases=["queue", "add"], help="Adds a song to the queue ")
+    @commands.command(aliases=["queue", "add"], help="Adds a song to the queue")
     async def q(self, ctx, *args):
         if (
             self.txt_ch_and_guild_id
@@ -438,10 +444,11 @@ class Music(commands.Cog):
         queued_song, next_in_queue_title, link = None, None, None
         if "https://open.spotify.com" in q_name:
             track_id = q_name[31 : q_name.index("?")]
-            access_token = spoti.SpotifyAPI.extract_access_token(
-                self.__SPOTIFY_CLIENT_ID, self.__SPOTIFY_CLIENT_SECRET
-            )
-            spotify = spoti.SpotifyAPI(access_token)
+            if(self.__SPOTIFY_ACCESS_TOKEN is None):
+                self.__SPOTIFY_ACCESS_TOKEN = spoti.SpotifyAPI.extract_access_token(
+                    self.__SPOTIFY_CLIENT_ID, self.__SPOTIFY_CLIENT_SECRET
+                )
+            spotify = spoti.SpotifyAPI(self.__SPOTIFY_ACCESS_TOKEN)
             track_name = spotify.get(track_id)
             queued_song, next_in_queue_title, link = self.search_song(
                 track_name, q_name
