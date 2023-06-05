@@ -88,41 +88,37 @@ class Music(commands.Cog):
 
     def check_queue(self, ctx, id):
         channel = self.bot.get_channel(ctx.channel.id)
-        try:
-            voice = ctx.guild.voice_client
-            voice.stop()
-            value = list(self.queues[id].keys())[0]
-            source = self.queues[id][value]
+    
+        voice = ctx.guild.voice_client
+        voice.stop()
+        value = list(self.queues[id].keys())
+        if not value:
             self.bot.loop.create_task(
-                channel.send(embed=generate_msg(f"🎶 Now playing: **{value}** 🎶"))
-            )
-            voice.play(
-                source, after=lambda x=None: self.check_queue(ctx, ctx.channel.id)
-            )
-            self.current[ctx.channel.id] = value
-            self.queues[id].pop(value)
-        except KeyError:
-            self.bot.loop.create_task(
-                channel.send(embed=generate_msg(f"Queue has stopped."))
-            )
+            channel.send(embed=generate_msg(f"Queue has stopped."))
+        )
+            return
+        source = self.queues[id][value[0]]
+        self.bot.loop.create_task(
+            channel.send(embed=generate_msg(f"🎶 Now playing: **{value[0]}** 🎶"))
+        )
+        voice.play(
+            source, after=lambda x=None: self.check_queue(ctx, ctx.channel.id)
+        )
+        self.current[ctx.channel.id] = value[0]
+        self.queues[id].pop(value[0])
+        
 
     def show_queue(self, ctx):
         queue_list = list(self.queues[ctx.channel.id].keys())
         channel = self.bot.get_channel(ctx.channel.id)
         songs = list(f"• {queue_list[i]}" for i in range(len(queue_list)))
-        string = "\n".join(songs)
-        if string:
-            self.bot.loop.create_task(
-                channel.send(
-                    embed=generate_msg(title_msg="**Queued songs**:", msg=string)
-                )
+        string = "\n".join(songs) if songs else "None"
+        self.bot.loop.create_task(
+            channel.send(
+                embed=generate_msg(title_msg="**Queued songs**:", msg=string)
             )
-        else:
-            self.bot.loop.create_task(
-                channel.send(
-                    embed=generate_msg(title_msg=f"**Queued songs**:", msg="None")
-                )
-            )
+        )
+     
 
     @commands.command(aliases=["start"], help="Lets me join your current voice channel")
     async def join(self, ctx):
@@ -151,8 +147,6 @@ class Music(commands.Cog):
                 ctx.channel.id,
                 str(ctx.channel),
             )
-        
-        print(self.txt_ch_and_guild_id)
 
         if not bool(ctx.voice_client) and bool(ctx.author.voice):
             channel = ctx.message.author.voice.channel
