@@ -21,7 +21,7 @@ class SpotifyAPI:
 
             return access_token
 
-        while not access_token:
+        while not access_token: #lmao 
             access_token = SpotifyAPI.extract_access_token(CLIENT_ID, CLIENT_SECRET)
             return access_token
 
