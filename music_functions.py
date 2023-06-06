@@ -28,7 +28,7 @@ class Music(commands.Cog):
         self.ERROR_MSGS = {
             1: "You're not in a voice channel! Having trouble? Use the `;helpme` command.",
             2: "I am not in a voice channel! Having trouble? Use the `;helpme` command.",
-            3: "Join/create a text channel containing the word **bot** in order to play a song.",
+            3: "Join/create a text channel containing the word **bot** or **music** in order to play a song.",
             4: "You must switch to this text channel in order to use song commands:",
             5: "We must be in the same voice channel.",
             6: "I am already in a voice channel.",
@@ -36,7 +36,7 @@ class Music(commands.Cog):
         self.__SPOTIFY_CLIENT_ID = os.environ.get("PLAYBOT_SPOTI_ID")
         self.__SPOTIFY_CLIENT_SECRET = os.environ.get("PLAYBOT_SPOTI_SECRET")
         self.__SPOTIFY_ACCESS_TOKEN = None
-
+        
     def search_song(self, query, spoti_link=None):
         search = urllib.parse.urlencode({"search_query": query + "audio"})
         html = urllib.request.urlopen("https://www.youtube.com/results?" + search)
@@ -47,10 +47,12 @@ class Music(commands.Cog):
         audio = None
         next_in_queue_title = None
         
+        
         with youtube_dl.YoutubeDL({'format': 'bestaudio'}) as ydl:
             info = ydl.extract_info("https://www.youtube.com/watch?v=" + results[0], download=False)
             audio = info['formats'][0]['url']
             next_in_queue_title = info['title']
+            duration = info['duration']
 
         if(audio is None):
             return
@@ -62,7 +64,7 @@ class Music(commands.Cog):
             next_in_queue_title = query
             link = spoti_link
         
-        return (queued_song, next_in_queue_title, link)
+        return (queued_song, next_in_queue_title, link, duration)
 
     def add_to_queue(self, ctx, song_title, source=None):
         if source:
@@ -79,7 +81,7 @@ class Music(commands.Cog):
 
         self.bot.loop.create_task(
             channel.send(
-                embed=generate_msg(f"🎶 Now playing: **{song_title}** 🎶\n{final_link}")
+                embed=generate_msg(f"🎶 Now playing: **[{song_title}]({final_link})** 🎶")
             )
         )
         voice.play(
@@ -118,7 +120,17 @@ class Music(commands.Cog):
                 embed=generate_msg(title_msg="**Queued songs**:", msg=string)
             )
         )
-     
+    @commands.Cog.listener()
+    async def on_voice_state_update(self, member, before, after): 
+        voice_state = member.guild.voice_client
+        if voice_state is not None and len(voice_state.channel.members) == 1:
+            for channel in member.guild.text_channels:
+                if channel.id in self.queues:
+                    self.queues[channel.id].clear()
+                    
+            await voice_state.disconnect()
+            
+
 
     @commands.command(aliases=["start"], help="Lets me join your current voice channel")
     async def join(self, ctx):
@@ -127,7 +139,7 @@ class Music(commands.Cog):
             and ctx.message.guild.id in self.txt_ch_and_guild_id
         ):
             channel_id, channel_name = self.txt_ch_and_guild_id[ctx.message.guild.id]
-        if "bot" not in str(ctx.channel):
+        if "bot" not in str(ctx.channel) and "music" not in str(ctx.channel):
             return await ctx.send(embed=generate_msg(self.ERROR_MSGS[3]))
 
         elif (
@@ -163,7 +175,7 @@ class Music(commands.Cog):
     async def leave(self, ctx):
         if self.txt_ch_and_guild_id:
             channel_id, channel_name = self.txt_ch_and_guild_id[ctx.message.guild.id]
-        if "bot" not in str(ctx.channel):
+        if "bot" not in str(ctx.channel) and "music" not in str(ctx.channel):
             return await ctx.send(embed=generate_msg(self.ERROR_MSGS[3]))
 
         elif channel_id != ctx.channel.id:
@@ -195,7 +207,7 @@ class Music(commands.Cog):
     async def play(self, ctx):
         if self.txt_ch_and_guild_id:
             channel_id, channel_name = self.txt_ch_and_guild_id[ctx.message.guild.id]
-        if "bot" not in str(ctx.channel):
+        if "bot" not in str(ctx.channel) and "music" not in str(ctx.channel):
             return await ctx.reply(embed=generate_msg(self.ERROR_MSGS[3]))
 
         elif channel_id != ctx.channel.id:
@@ -229,7 +241,7 @@ class Music(commands.Cog):
     async def pause(self, ctx):
         if self.txt_ch_and_guild_id:
             channel_id, channel_name = self.txt_ch_and_guild_id[ctx.message.guild.id]
-        if "bot" not in str(ctx.channel):
+        if "bot" not in str(ctx.channel) and "music" not in str(ctx.channel):
             return await ctx.reply(embed=generate_msg(self.ERROR_MSGS[3]))
 
         elif channel_id != ctx.channel.id:
@@ -259,7 +271,7 @@ class Music(commands.Cog):
     async def skip(self, ctx):
         if self.txt_ch_and_guild_id:
             channel_id, channel_name = self.txt_ch_and_guild_id[ctx.message.guild.id]
-        if "bot" not in str(ctx.channel):
+        if "bot" not in str(ctx.channel) and "music" not in str(ctx.channel):
             return await ctx.reply(embed=self.ERROR_MSGS[3])
 
         elif channel_id != ctx.channel.id:
@@ -294,7 +306,7 @@ class Music(commands.Cog):
             and ctx.message.guild.id in self.txt_ch_and_guild_id
         ):
             channel_id, channel_name = self.txt_ch_and_guild_id[ctx.message.guild.id]
-        if "bot" not in str(ctx.channel):
+        if "bot" not in str(ctx.channel) and "music" not in str(ctx.channel):
             return await ctx.reply(embed=generate_msg(self.ERROR_MSGS[3]))
 
         elif (
@@ -334,7 +346,7 @@ class Music(commands.Cog):
             and ctx.message.guild.id in self.txt_ch_and_guild_id
         ):
             channel_id, channel_name = self.txt_ch_and_guild_id[ctx.message.guild.id]
-        if "bot" not in str(ctx.channel):
+        if "bot" not in str(ctx.channel) and "music" not in str(ctx.channel):
             return await ctx.send(embed=generate_msg(self.ERROR_MSGS[3]))
 
         elif (
@@ -374,7 +386,7 @@ class Music(commands.Cog):
                     )
                 )
 
-            song, title, link = None, None, None
+            song, title, link, duration = None, None, None, None
 
             if "https://open.spotify.com" in play_name:
                 track_id = play_name[31 : play_name.index("?")]
@@ -385,10 +397,10 @@ class Music(commands.Cog):
 
                 spotify = spoti.SpotifyAPI(self.__SPOTIFY_ACCESS_TOKEN)
                 track_name = spotify.get(track_id)
-                song, title, link = self.search_song(track_name, play_name)
+                song, title, link, duration = self.search_song(track_name, play_name)
 
             elif "https://www.youtube.com/" not in play_name:
-                song, title, link = self.search_song(play_name)
+                song, title, link, duration = self.search_song(play_name)
 
             elif "https://www.youtube.com/" in play_name:
                 audio = None
@@ -409,7 +421,7 @@ class Music(commands.Cog):
             and ctx.message.guild.id in self.txt_ch_and_guild_id
         ):
             channel_id, channel_name = self.txt_ch_and_guild_id[ctx.message.guild.id]
-        if "bot" not in str(ctx.channel):
+        if "bot" not in str(ctx.channel) and "music" not in str(ctx.channel):
             return await ctx.reply(embed=generate_msg(self.ERROR_MSGS[3]))
 
         elif (
@@ -444,12 +456,12 @@ class Music(commands.Cog):
                 )
             spotify = spoti.SpotifyAPI(self.__SPOTIFY_ACCESS_TOKEN)
             track_name = spotify.get(track_id)
-            queued_song, next_in_queue_title, link = self.search_song(
+            queued_song, next_in_queue_title, link, duration = self.search_song(
                 track_name, q_name
             )
 
         elif "/watch?v=" not in q_name:
-            queued_song, next_in_queue_title, link = self.search_song(q_name)
+            queued_song, next_in_queue_title, link, duration = self.search_song(q_name)
 
         elif "/watch?v=" in q_name:
             link = q_name
@@ -458,6 +470,7 @@ class Music(commands.Cog):
                 info = ydl.extract_info(q_name, download=False)
                 yt_audio_queue = info['formats'][0]['url']
                 next_in_queue_title = info['title']
+                duration = info['duration']
                 
             queued_song = FFmpegPCMAudio(yt_audio_queue, **self.FFMPEG_OPTIONS)
 
@@ -469,7 +482,7 @@ class Music(commands.Cog):
 
         await ctx.send(
             embed=generate_msg(
-                f"Added to queue: **{next_in_queue_title}**\n{link}",
+                f"Added to queue: **[{next_in_queue_title}]({link})** [{time.strftime('%H:%M:%S', time.gmtime(duration)) if duration >= 3600 else time.strftime('%M:%S', time.gmtime(duration))}]",
             )
         )
         self.show_queue(ctx)
@@ -478,7 +491,7 @@ class Music(commands.Cog):
     async def search(self, ctx, *args):
         if self.txt_ch_and_guild_id:
             channel_id, channel_name = self.txt_ch_and_guild_id[ctx.message.guild.id]
-        if "bot" not in str(ctx.channel):
+        if "bot" not in str(ctx.channel) and "music" not in str(ctx.channel):
             return await ctx.send(embed=generate_msg(self.ERROR_MSGS[3]))
 
         elif (
@@ -532,10 +545,9 @@ class Music(commands.Cog):
                     info = ydl.extract_info(f"https://www.youtube.com/watch?v={search_resultsyt[i]}", download=False)
                     title = info['title']
                     duration = info['duration']
-                    if(info['id'] not in links):
+                    if info['id'] not in links:
                         list1.append(
-                            f"**{i+1-offset}** : {title} **[{time.strftime('%H:%M:%S', time.gmtime(duration))}]**"
-                        )
+                            f"**{i+1-offset}** : {title} **[{time.strftime('%H:%M:%S', time.gmtime(duration)) if duration >= 3600 else time.strftime('%M:%S', time.gmtime(duration))}]**")
                         links.append(info['id'])
                     else:
                         offset += 1
@@ -572,7 +584,7 @@ class Music(commands.Cog):
                     return self.play_song(ctx, newsource, title, final_link)
 
                 await ctx.send(
-                    embed=generate_msg(f"Added to queue: **{title}**")
+                    embed=generate_msg(f"Added to queue: **[{title}]({final_link})** [{time.strftime('%H:%M:%S', time.gmtime(duration)) if duration >= 3600 else time.strftime('%M:%S', time.gmtime(duration))}]")
                 )
 
                 self.add_to_queue(ctx, title, newsource)
@@ -590,7 +602,7 @@ class Music(commands.Cog):
         ):
             channel_id, channel_name = self.txt_ch_and_guild_id[ctx.message.guild.id]
 
-        if "bot" not in str(ctx.channel):
+        if "bot" not in str(ctx.channel) and "music" not in str(ctx.channel):
             return await ctx.reply(embed=generate_msg(self.ERROR_MSGS[3]))
 
         elif (
@@ -624,7 +636,7 @@ class Music(commands.Cog):
             and ctx.message.guild.id in self.txt_ch_and_guild_id
         ):
             channel_id, channel_name = self.txt_ch_and_guild_id[ctx.message.guild.id]
-        if "bot" not in str(ctx.channel):
+        if "bot" not in str(ctx.channel) and "music" not in str(ctx.channel):
             return await ctx.reply(embed=generate_msg(self.ERROR_MSGS[3]))
 
         elif channel_id != ctx.channel.id:
@@ -678,7 +690,7 @@ class Music(commands.Cog):
             and ctx.message.guild.id in self.txt_ch_and_guild_id
         ):
             channel_id, channel_name = self.txt_ch_and_guild_id[ctx.message.guild.id]
-        if "bot" not in str(ctx.channel):
+        if "bot" not in str(ctx.channel) and "music" not in str(ctx.channel): 
             return await ctx.reply(embed=generate_msg(self.ERROR_MSGS[3]))
 
         elif (
@@ -723,7 +735,7 @@ class Music(commands.Cog):
             and ctx.message.guild.id in self.txt_ch_and_guild_id
         ):
             channel_id, channel_name = self.txt_ch_and_guild_id[ctx.message.guild.id]
-        if "bot" not in str(ctx.channel):
+        if "bot" not in str(ctx.channel) and "music" not in str(ctx.channel):
             return await ctx.send(embed=generate_msg(self.ERROR_MSGS[3]))
 
         elif channel_id != ctx.channel.id:
