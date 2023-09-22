@@ -90,13 +90,15 @@ class Music(commands.Cog):
 
     def check_queue(self, ctx, id):
         channel = self.bot.get_channel(ctx.channel.id)
-    
+        value = []
         voice = ctx.guild.voice_client
-        voice.stop()
-        value = list(self.queues[id].keys())
+        if voice is not None:
+            voice.stop()
+        if id in self.queues:
+            value = list(self.queues[id].keys())
         if not value:
             self.bot.loop.create_task(
-            channel.send(embed=generate_msg(f"Queue has stopped."))
+            channel.send(embed=generate_msg(f"Queue has finished."))
         )
             return
         source = self.queues[id][value[0]]
@@ -127,7 +129,7 @@ class Music(commands.Cog):
             for channel in member.guild.text_channels:
                 if channel.id in self.queues:
                     self.queues[channel.id].clear()
-                    
+            self.bot.loop.create_task(self.bot.get_channel(channel.id).send(embed=generate_msg(msg="Cleared queue and left channel due to inactivity.")))
             await voice_state.disconnect()
             
 
@@ -203,41 +205,7 @@ class Music(commands.Cog):
         await ctx.voice_client.disconnect()
         return await ctx.send(embed=generate_msg(f"Left **{channel}** voice channel."))
 
-    @commands.command(aliases=["continue", "res"], help="Resumes the paused song")
-    async def play(self, ctx):
-        if self.txt_ch_and_guild_id:
-            channel_id, channel_name = self.txt_ch_and_guild_id[ctx.message.guild.id]
-        if "bot" not in str(ctx.channel) and "music" not in str(ctx.channel):
-            return await ctx.reply(embed=generate_msg(self.ERROR_MSGS[3]))
-
-        elif channel_id != ctx.channel.id:
-            return await ctx.reply(
-                embed=generate_msg(f"{self.ERROR_MSGS[4]} **#{channel_name}**")
-            )
-
-        if not ctx.voice_client:
-            return await ctx.reply(embed=generate_msg(self.ERROR_MSGS[2]))
-
-        if not ctx.author.voice:
-            return await ctx.reply(embed=generate_msg(self.ERROR_MSGS[1]))
-
-        if not (
-            ctx.author.voice.channel
-            and ctx.author.voice.channel == ctx.voice_client.channel
-        ):
-            return await ctx.send(embed=generate_msg(self.ERROR_MSGS[5]))
-
-        voice = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)
-
-        if voice.is_paused():
-            voice.resume()
-            return await ctx.send(
-                embed=generate_msg(f"Resumed **{self.current[ctx.channel.id]}**")
-            )
-
-        return await ctx.send(embed=generate_msg("There is no audio currently playing"))
-
-    @commands.command(help="Pauses the current song")
+    @commands.command(help="Pauses/Resumes the current song")
     async def pause(self, ctx):
         if self.txt_ch_and_guild_id:
             channel_id, channel_name = self.txt_ch_and_guild_id[ctx.message.guild.id]
@@ -264,7 +232,11 @@ class Music(commands.Cog):
             return await ctx.send(
                 embed=generate_msg(f"Paused **{self.current[ctx.channel.id]}**")
             )
-
+        elif voice.is_paused():
+            voice.resume()
+            return await ctx.send(
+                embed=generate_msg(f"Resumed **{self.current[ctx.channel.id]}**")
+            )
         return await ctx.send(embed=generate_msg("There is no song being played"))
 
     @commands.command(aliases=["next"], help="Skip to the next song in your queue")
@@ -339,7 +311,7 @@ class Music(commands.Cog):
             embed=generate_msg("Current song stopped and all queues removed")
         )
 
-    @commands.command(help="Lets me play a song in your current voice channel")
+    @commands.command(aliases=["p"], help="Lets me play a song in your current voice channel")
     async def song(self, ctx, *args):
         if (
             self.txt_ch_and_guild_id
@@ -725,7 +697,7 @@ class Music(commands.Cog):
         return await ctx.send(
             embed=generate_msg(title_msg=f"**Queued songs**:", msg="None")
         )
-
+# TODO: fix broken lyrics command 
     @commands.command(
         help="Shows lyrics of current song playing (sometimes inaccurate)"
     )
